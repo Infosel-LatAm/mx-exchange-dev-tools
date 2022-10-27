@@ -3,9 +3,10 @@ import dpkt
 import json
 import struct
 import sys
+from datetime import datetime
 
-# note on networking info.
-# This doesn't deal with ETH_TYPE_IP6, but it should be possible
+# Note on networking info.
+# This doesn't deal with ETH_TYPE_IP6, but it is possible.
 #
 
 BMV_TIMESTAMP_FORMAT = ">q"
@@ -18,27 +19,41 @@ BMV_PRECIO8_FORMAT = ">q"
 # Some statistics
 counter_msgs = {}
 
+#  Notes On Conversions rules
+#
+# * All integer fields are ordered under the big-endian system and have a sign.
+
 
 def parse_bmv_alfa(bytes_array: bytes):
-    # All ALPHA fields are ISO 8859-1, left aligned and filled on the right with spaces.
     # assert bytes_array is bytes, "To parse it correctly it must be used on a bytes object"
+    # All ALPHA fields are ISO 8859-1, left aligned and filled on the right with spaces.
     return bytes_array.decode("iso-8859-1").rstrip()
 
 
-def parse_bmv_timestamp1(bytes_array):  # TODO
-    # All integer fields are ordered under the big-endian system and have a sign.
-    # hack ctime despues de quitarse 3 digitoos (Julian)
+def parse_bmv_timestamp1(bytes_array):  # Solo Fecha
     assert len(bytes_array) == 8, "Can only be applied to arrays of 8 bytes"
     assert struct.calcsize(BMV_TIMESTAMP_FORMAT) == 8, "Format must be as well 8 bytes"
-    return struct.unpack(BMV_TIMESTAMP_FORMAT, bytes_array)[0]
+    data = struct.unpack(BMV_TIMESTAMP_FORMAT, bytes_array)[0]
+    timestamp = datetime.fromtimestamp(data // 1000)  # Eliminate 3 last digits that would be milliseconds
+    return timestamp.date().isoformat()
 
 
-def parse_bmv_timestamp2(bytes_array):  # TODO
-    # All integer fields are ordered under the big-endian system and have a sign.
-    # hack ctime despues de quitarse 3 digitios (Julian)
+def parse_bmv_timestamp2(bytes_array):  # Fecha y Hora con precision de segundos
     assert len(bytes_array) == 8, "Can only be applied to arrays of 8 bytes"
     assert struct.calcsize(BMV_TIMESTAMP_FORMAT) == 8, "Format must be as well 8 bytes"
-    return struct.unpack(BMV_TIMESTAMP_FORMAT, bytes_array)[0]
+    data = struct.unpack(BMV_TIMESTAMP_FORMAT, bytes_array)[0]
+    timestamp = datetime.fromtimestamp(data // 1000)  # Eliminate 3 last digits that would be milliseconds
+    return timestamp.isoformat()
+
+
+def parse_bmv_timestamp3(bytes_array):  # Fecha y Hora con precision de milisegundos
+    # All integer fields are ordered under the big-endian system and have a sign.
+    assert len(bytes_array) == 8, "Can only be applied to arrays of 8 bytes"
+    assert struct.calcsize(BMV_TIMESTAMP_FORMAT) == 8, "Format must be as well 8 bytes"
+    data = struct.unpack(BMV_TIMESTAMP_FORMAT, bytes_array)[0]
+    timestamp = datetime.fromtimestamp(data // 1000)  # Eliminate 3 last digits that would be milliseconds
+    timestamp = timestamp.replace(microsecond=(data % 1000) * 1000)
+    return timestamp.isoformat()
 
 
 def parse_bmv_int8(bytes_array):
@@ -111,10 +126,11 @@ def parse_bmv_udp_packet(packet):
     packet_dict['grupo_market_data'] = parse_bmv_int8(packet.data[3:4])
     assert packet_dict['grupo_market_data'] == 18, "We only deal with grupo 18 BMV messages"
     packet_dict['sesion'] = parse_bmv_int8(packet.data[4:5])
-    assert packet_dict['sesion'] == 2, "We have never seen another sesion than 2"
+    # http://tecnologia.bmv.com.mx:6503/especificacion/multicast/msg/structure/catalogs.html#cat_grupo_market_data
+    assert 1 <= packet_dict['sesion'] <= 40, "La sesion debe estar entre 1 y 40"
     numero_secuencia = parse_bmv_int32(packet.data[5:9])
     packet_dict['numero_secuencia']: numero_secuencia
-    packet_dict['timestamp'] = parse_bmv_timestamp1(packet.data[9:17])
+    packet_dict['timestamp'] = parse_bmv_timestamp3(packet.data[9:17])
     mensajes = []
     start = 17
     for i in range(0, total_mensajes):
