@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Script para solicitar
-retransmisión estilo BMV
+Script para simular solicitudes
+de retransmisión estilo BMV
 
+Julián Sánchez Mena
 2022-10-28
 """
 

@@ -3,6 +3,7 @@
 Script para responder a solicitudes
 de retransmisión estilo BMV
 
+Julián Sánchez Mena
 2022-10-28
 """
 
