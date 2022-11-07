@@ -8,6 +8,7 @@ import json
 import struct
 from datetime import datetime
 
+UDP_PRODUCTO_18 = "239.100.100.18"
 HEADER_SIZE = 17
 
 # Based on the documentation available here
@@ -44,7 +45,7 @@ def parse_bmv_timestamp1(bytes_array):
     return timestamp.date().isoformat()  # Return only the date.
 
 
-def parse_bmv_timestamp2(bytes_array):
+def parse_bmv_timestamp2(bytes_array: bytes) -> str:
     """Parses a timestamp of type 2 (Fecha y Hora con precision de segundos) as specified by BMV"""
     assert len(bytes_array) == 8, "Only apply to arrays of 8 bytes"
     assert struct.calcsize(BMV_TIMESTAMP_FORMAT) == 8, "Format shall have 8 bytes long"
@@ -53,7 +54,7 @@ def parse_bmv_timestamp2(bytes_array):
     return timestamp.isoformat()  # Return date and time
 
 
-def parse_bmv_timestamp3(bytes_array):
+def parse_bmv_timestamp3(bytes_array: bytes) -> str:
     """Parses a timestamp of type 3 (Fecha y Hora con precision de milisegundos) as specified by BMV"""
     assert len(bytes_array) == 8, "Only apply to arrays of 8 bytes"
     assert struct.calcsize(BMV_TIMESTAMP_FORMAT) == 8, "Format length is 8 bytes"
@@ -63,28 +64,28 @@ def parse_bmv_timestamp3(bytes_array):
     return timestamp.isoformat()  # Return date, time and seconds with milliseconds precision.
 
 
-def parse_bmv_int8(bytes_array):
+def parse_bmv_int8(bytes_array: bytes) -> int:
     """Parses 1 byte as an integer as specified by BMV"""
     assert len(bytes_array) == 1, "Only apply to arrays of 1 byte"
     assert struct.calcsize(BMV_INT8_FORMAT) == 1, "Format must have as well 1 bytes"
     return struct.unpack(BMV_INT8_FORMAT, bytes_array)[0]
 
 
-def parse_bmv_int16(bytes_array):
+def parse_bmv_int16(bytes_array: bytes) -> int:
     """Parses 2 bytes as an integer as specified by BMV"""
     assert len(bytes_array) == 2, "Only apply to arrays of 2 bytes"
     assert struct.calcsize(BMV_INT16_FORMAT) == 2, "Format must have as well 2 bytes"
     return struct.unpack(BMV_INT16_FORMAT, bytes_array)[0]
 
 
-def parse_bmv_int32(bytes_array):
+def parse_bmv_int32(bytes_array: bytes) -> int:
     """Parses 4 bytes as an integer as specified by BMV"""
     assert len(bytes_array) == 4, "Only apply to arrays of 4 bytes"
     assert struct.calcsize(BMV_INT32_FORMAT) == 4, "Format must have as well 4 bytes"
     return struct.unpack(BMV_INT32_FORMAT, bytes_array)[0]
 
 
-def parse_bmv_precio4(bytes_array):
+def parse_bmv_precio4(bytes_array: bytes) -> float:
     """Parses 4 bytes as a 'precio' with 4 decimal digits. As specified by BMV"""
     assert len(bytes_array) == 4, "Only apply to arrays of 4 bytes"
     assert struct.calcsize(BMV_PRECIO4_FORMAT) == 4, "Format must have as well 4 bytes"
@@ -92,7 +93,7 @@ def parse_bmv_precio4(bytes_array):
     return precio / 1000.0
 
 
-def parse_bmv_precio8(bytes_array):
+def parse_bmv_precio8(bytes_array:bytes) -> float:
     """Parses 4 byte as a 'precio' with 8 decimal digits. As specified by BMV"""
     assert len(bytes_array) == 8, "nly apply to arrays of 8 bytes"
     assert struct.calcsize(BMV_PRECIO8_FORMAT) == 8, "Format must have as well 4 bytes"
@@ -100,7 +101,7 @@ def parse_bmv_precio8(bytes_array):
     return precio / 10000000.0
 
 
-def parse_bmv_mensaje_P(bytes_array):
+def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     """Parses an array of 52 bytes as a 'Mensaje P' as specified by BMV"""
     msg_P: dict
     assert len(bytes_array) == 52, f"Mensaje P debe tener 52 bytes y tiene ${len(bytes_array)}"
