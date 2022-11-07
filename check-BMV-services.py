@@ -1,23 +1,39 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Checks multicast groups for PRODUCTO 18 and if something is coming, prints the summary of the information.
+Listens to multicast group for PRODUCTO 18.
+If something comes, prints the summary of the information.
 """
 
 import socket
 import bmv_utils.parse
 
-# Set up a UDP server
-UDPSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-listen_addr = ("", 6501)
-UDPSock.bind(listen_addr)
 
 if __name__ == '__main__':
     counter_msgs = {}
-    udp_packet, addr = UDPSock.recvfrom(1024)
-    secuencia, total_mensajes, counter_msgs, paquete = bmv_utils.parse.parse_bmv_udp_packet(udp_packet, counter_msgs)
-    print(f"El PRODUCTO 18 esta en la secuencia {secuencia} y "
-          f"con el timestamp {paquete['timestamp']}")
+    # Set up a UDP server
+    UDP_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    try:
+        UDP_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    except AttributeError:
+        pass
+    UDP_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
+
+    UDP_sock.bind((bmv_utils.parse.UDP_PRODUCTO_18, 12121))  # The port is arbitrary?, so I don't define it as constant
+    host = socket.gethostbyname(socket.gethostname())
+    UDP_sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
+    UDP_sock.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP,
+                        socket.inet_aton(bmv_utils.parse.UDP_PRODUCTO_18) + socket.inet_aton(host))
+
+    try:
+        udp_packet, addr = UDP_sock.recvfrom(1024)
+    except UDP_sock.error as e:
+        print('Exception')
+    else:
+        secuencia, total_mensajes, counter_msgs, paquete = \
+            bmv_utils.parse.parse_bmv_udp_packet(udp_packet, counter_msgs)
+        print(f"El PRODUCTO 18 esta en la secuencia {secuencia} y "
+              f"con el timestamp {paquete['timestamp']}")
 
 # Paquete de prueba
 #
