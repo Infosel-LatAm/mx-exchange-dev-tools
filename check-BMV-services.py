@@ -9,8 +9,13 @@ import socket
 import bmv_utils.parse
 
 
-if __name__ == '__main__':
-    counter_msgs = {}
+def setup_UDP_server(group, port):
+    """
+    Sets up a udp socket to receive packets on group and port
+    :param group: multicast group to bind to
+    :param port: multicast port to bind to
+    :return: udp_socket
+    """
     # Set up a UDP server
     UDP_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     try:
@@ -18,22 +23,39 @@ if __name__ == '__main__':
     except AttributeError:
         pass
     UDP_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
-
-    UDP_sock.bind((bmv_utils.parse.UDP_PRODUCTO_18, 12121))  # The port is arbitrary?, so I don't define it as constant
+    UDP_sock.bind((group, port))
     host = socket.gethostbyname(socket.gethostname())
     UDP_sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
     UDP_sock.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP,
-                        socket.inet_aton(bmv_utils.parse.UDP_PRODUCTO_18) + socket.inet_aton(host))
+                        socket.inet_aton(bmv_utils.parse.BMV_PROD_18_GRP_A) + socket.inet_aton(host))
+    return UDP_sock
 
+
+def check_BMV_producto18(group, port):
+    """
+    Subscribes to the producto 18 of BMV, or supposes is product 18 and attempts to find
+    the secuencia and timestamp
+    :param group: multicast group to bind to
+    :param port: multicast port to bind to
+    """
+    global counter_msgs
+    UDP_sock_prod18_A = setup_UDP_server(group, port)
     try:
-        udp_packet, addr = UDP_sock.recvfrom(1024)
-    except UDP_sock.error as e:
+        udp_packet, addr = UDP_sock_prod18_A.recvfrom(1024)
+    except UDP_sock_prod18_A.error as e:
         print('Exception')
     else:
-        secuencia, total_mensajes, counter_msgs, paquete = \
-            bmv_utils.parse.parse_bmv_udp_packet(udp_packet, counter_msgs)
-        print(f"El PRODUCTO 18 esta en la secuencia {secuencia} y "
-              f"con el timestamp {paquete['timestamp']}")
+        secuencia, total_mensajes, counter_msgs, paquete = bmv_utils.parse.parse_bmv_udp_packet(udp_packet,
+                                                                                                counter_msgs)
+        print(f"PRODUCTO 18 en {group}:{port} secuencia {secuencia}  "
+              f"timestamp {paquete['timestamp']}")
+
+
+if __name__ == '__main__':
+    counter_msgs = {}
+    check_BMV_producto18(bmv_utils.parse.BMV_PROD_18_GRP_A, bmv_utils.parse.BMV_PROD18_PORT_A)
+    check_BMV_producto18(bmv_utils.parse.BMV_PROD_18_GRP_B, bmv_utils.parse.BMV_PROD18_PORT_B)
+
 
 # Paquete de prueba
 #
