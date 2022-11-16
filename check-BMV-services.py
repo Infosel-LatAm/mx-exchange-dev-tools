@@ -33,12 +33,12 @@ def setup_UDP_server(group, port):
 
 def check_BMV_producto18(group, port):
     """
-    Subscribes to the producto 18 of BMV, or supposes is product 18 and attempts to find
+    Subscribe to the producto 18 of BMV, or supposes is product 18 and attempts to find
     the secuencia and timestamp
     :param group: multicast group to bind to
     :param port: multicast port to bind to
     """
-    global counter_msgs
+    global counter_msgs  # This variable doesnot really matter.
     UDP_sock_prod18_A = setup_UDP_server(group, port)
     try:
         udp_packet, addr = UDP_sock_prod18_A.recvfrom(1024)
