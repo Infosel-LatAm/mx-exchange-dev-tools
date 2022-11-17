@@ -18,4 +18,6 @@ if __name__ == '__main__':
     pcap_filename = sys.argv[1]
     json_output_filename = sys.argv[2]
     counter_msgs = bmv_utils.parse.parse_pcap_file(open(pcap_filename, 'rb'), open(json_output_filename, 'wt'))
+    for key in counter_msgs:
+        counter_msgs[key]['avg size'] = counter_msgs[key]['bytes'] / counter_msgs[key]['total']
     print(counter_msgs)
