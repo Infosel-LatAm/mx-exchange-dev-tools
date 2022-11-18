@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Script para responder a solicitudes de retransmisión estilo BMV
 """

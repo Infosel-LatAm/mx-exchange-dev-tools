@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Listens to multicast group for PRODUCTO 18.
 If something comes, prints the summary of the information.

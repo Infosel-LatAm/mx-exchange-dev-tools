@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Reads a pcap file from BMV and generates P messages in json format.
 """
