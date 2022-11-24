@@ -102,7 +102,7 @@ def parse_bmv_precio8(bytes_array: bytes) -> float:
     assert len(bytes_array) == 8, "nly apply to arrays of 8 bytes"
     assert struct.calcsize(BMV_PRECIO8_FORMAT) == 8, "Format must have as well 4 bytes"
     precio = float(struct.unpack(BMV_PRECIO8_FORMAT, bytes_array)[0])
-    return precio / 10000000.0
+    return precio / 100000000.0
 
 
 def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
