@@ -198,6 +198,7 @@ def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
                 secuencia, total_mensajes, counter_msgs, paquete = parse_bmv_udp_packet(udp_packet.data, counter_msgs)
                 if not last_secuencia:
                     last_secuencia = secuencia + total_mensajes
+                    print(f"Primera secuencia es ${last_secuencia}")
                 else:
                     if last_secuencia < secuencia:  # ToDo - check the pcaps
                         print(f"Salto de secuencia: de {last_secuencia} a {secuencia}")
@@ -206,4 +207,5 @@ def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
                     last_secuencia = secuencia + total_mensajes
                 for mensaje in paquete['mensajes']:
                     print(json.dumps(mensaje), file=output_file)
+    print(f"Ultima secuencia es ${last_secuencia}")
     return counter_msgs
