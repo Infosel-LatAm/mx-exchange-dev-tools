@@ -8,7 +8,7 @@ import json
 import struct
 from datetime import datetime
 
-BMV_PROD_18_GRP_A = "239.100.100.18"  # Grupo UDP para producto 18 de BMV, feed A
+BMV_PROD18_GRP_A = "239.100.100.18"  # Grupo UDP para producto 18 de BMV, feed A
 BMV_PROD18_PORT_A = 12121
 BMV_PROD18_GRP_B = "239.100.200.18"  # Grupo UDP para producto 18 de BMV, feed B
 BMV_PROD18_PORT_B = 12122
