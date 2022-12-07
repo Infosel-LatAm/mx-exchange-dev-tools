@@ -155,7 +155,7 @@ def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, d
     # http://tecnologia.bmv.com.mx:6503/especificacion/multicast/msg/structure/catalogs.html#cat_grupo_market_data
     # assert 0 <= paquete['sesion'] <= 40, "La sesion debe estar entre 1, y 40"
     paquete['secuencia'] = secuencia = parse_bmv_int32(packet_data[5:9])
-    timestamp = parse_bmv_timestamp3(packet_data[9:HEADER_SIZE])
+    paquete['timestamp'] = timestamp = parse_bmv_timestamp3(packet_data[9:HEADER_SIZE])
     mensajes = []
     start = HEADER_SIZE
     for i in range(0, total_mensajes):

@@ -26,7 +26,7 @@ def setup_UDP_server(group, port):
     host = socket.gethostbyname(socket.gethostname())
     UDP_sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
     UDP_sock.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP,
-                        socket.inet_aton(bmv_utils.parse.BMV_PROD_18_GRP_A) + socket.inet_aton(host))
+                        socket.inet_aton(bmv_utils.parse.BMV_PROD18_GRP_A) + socket.inet_aton(host))
     return UDP_sock
 
 
@@ -37,23 +37,25 @@ def check_BMV_producto18(group, port):
     :param group: multicast group to bind to
     :param port: multicast port to bind to
     """
-    global counter_msgs  # This variable doesnot really matter.
+    global counter_msgs  # This variable does not really matter.
     UDP_sock_prod18_A = setup_UDP_server(group, port)
     try:
         udp_packet, addr = UDP_sock_prod18_A.recvfrom(1024)
     except UDP_sock_prod18_A.error as e:
         print('Exception')
     else:
-        secuencia, total_mensajes, counter_msgs, paquete = bmv_utils.parse.parse_bmv_udp_packet(udp_packet,
-                                                                                                counter_msgs)
+        secuencia, total_mensajes, counter_msgs, paquete = \
+            bmv_utils.parse.parse_bmv_udp_packet(udp_packet, counter_msgs)
         print(f"PRODUCTO 18 en {group}:{port} secuencia {secuencia}  "
               f"timestamp {paquete['timestamp']}")
 
 
 if __name__ == '__main__':
     counter_msgs = {}
-    check_BMV_producto18(bmv_utils.parse.BMV_PROD_18_GRP_A, bmv_utils.parse.BMV_PROD18_PORT_A)
-    check_BMV_producto18(bmv_utils.parse.BMV_PROD_18_GRP_B, bmv_utils.parse.BMV_PROD18_PORT_B)
+    check_BMV_producto18(bmv_utils.parse.BMV_PROD18_GRP_A,
+                         bmv_utils.parse.BMV_PROD18_PORT_A)
+    check_BMV_producto18(bmv_utils.parse.BMV_PROD18_GRP_B,
+                         bmv_utils.parse.BMV_PROD18_PORT_B)
 
 
 # Paquete de prueba
