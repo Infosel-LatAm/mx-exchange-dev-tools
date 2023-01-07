@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 """
-Reads a pcap file from BMV and generates P messages in json format.
+Reads a pcap file from BMV and generates messages inside the pcap file in json format.
 """
 import sys
 import bmv_utils.parse

@@ -30,6 +30,7 @@ BMV_TIMESTAMP_FORMAT = ">q"
 BMV_INT8_FORMAT = ">b"
 BMV_INT16_FORMAT = ">h"
 BMV_INT32_FORMAT = ">i"
+BMV_INT64_FORMAT = ">q"
 BMV_PRECIO4_FORMAT = ">i"
 BMV_PRECIO8_FORMAT = ">q"
 
@@ -89,6 +90,13 @@ def parse_bmv_int32(bytes_array: bytes) -> int:
     return struct.unpack(BMV_INT32_FORMAT, bytes_array)[0]
 
 
+def parse_bmv_int64(bytes_array: bytes) -> int:
+    """Parses 8 bytes as an integer as specified by BMV"""
+    assert len(bytes_array) == 8, "Only apply to arrays of 8 bytes"
+    assert struct.calcsize(BMV_INT64_FORMAT) == 8, "Format must have as well 4 bytes"
+    return struct.unpack(BMV_INT64_FORMAT, bytes_array)[0]
+
+
 def parse_bmv_precio4(bytes_array: bytes) -> float:
     """Parses 4 bytes as a 'precio' with 4 decimal digits. As specified by BMV"""
     assert len(bytes_array) == 4, "Only apply to arrays of 4 bytes"
@@ -105,13 +113,44 @@ def parse_bmv_precio8(bytes_array: bytes) -> float:
     return precio / 100000000.0
 
 
+def parse_bmv_mensaje_E(bytes_array: bytes) -> dict:
+    """Parses an array of 65 bytes as a 'Mensaje E' as specified by BMV"""
+    msg_E: dict
+    assert len(bytes_array) == 65, f"Mensaje E debe tener 65 bytes y tiene ${len(bytes_array)}"
+    tipo_mensaje = parse_alfa(bytes_array[:1])
+    assert tipo_mensaje == 'E', "This parsing only works for mensaje E"
+    msg_E = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+             "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
+             "numeroOperaciones": parse_bmv_int32(bytes_array[5:9]),
+             "volumen": parse_bmv_int64(bytes_array[9:17]),
+             "importe": parse_bmv_precio8(bytes_array[17:25]),
+             "apertura": parse_bmv_precio8(bytes_array[25:33]),
+             "maximo": parse_bmv_precio8(bytes_array[33:41]),
+             "minimo": parse_bmv_precio8(bytes_array[41:49]),
+             "promedio": parse_bmv_precio8(bytes_array[49:57]),
+             "last": parse_bmv_precio8(bytes_array[57:65])
+             }
+    assert msg_E['numeroInstrumento'] > 0, f"Numero instrumento {msg_E['numeroInstrumento']} debe ser mayor a cero"
+    assert msg_E['numeroOperaciones'] >= 0, "El numero de operaciones es cero o mayor"
+    assert msg_E['volumen'] >= 0, "El Volumen acumulado debe ser cero o mayor"
+    assert msg_E['importe'] >= 0, "El importe acumulado debe ser cero o mayor"
+    assert msg_E['apertura'] >= 0, f"El precio de apertura {msg_E['apertura']} debe ser mayor o igual a cero"
+    assert msg_E['maximo'] >= 0, f"El precio maximo {msg_E['maximo']} debe ser mayor o igual a cero"
+    assert msg_E['minimo'] >= 0, f"El precio minimo {msg_E['minimo']} debe ser mayor o igual a cero"
+    assert msg_E['promedio'] >= 0, f"El precio promedio {msg_E['promedio']} debe ser mayor o igual a cero"
+    assert msg_E['last'] > 0, f"El ultimo precio {msg_E['last']} debe ser mayor a cero"
+    # Done with checks
+    return msg_E
+
+
+
 def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     """Parses an array of 52 bytes as a 'Mensaje P' as specified by BMV"""
     msg_P: dict
     assert len(bytes_array) == 52, f"Mensaje P debe tener 52 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
     assert tipo_mensaje == 'P', "This parsing only works for mensaje P"
-    msg_P = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": 'P',
+    msg_P = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "horaHecho": parse_bmv_timestamp2(bytes_array[5:13]).isoformat(),
              "volumen": parse_bmv_int32(bytes_array[13:17]),
@@ -129,12 +168,13 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     assert msg_P['numeroInstrumento'] > 0, f"Numero instrumento {msg_P['numeroInstrumento']} debe ser mayor a cero"
     assert msg_P['volumen'] > 0, "El Volumen de un hecho siempre debe ser mayor a cero"
     assert msg_P['precio'] > 0, "El precio de un hecho siempre debe ser mayor a cero"
-    #assert msg_P['tipoConcertacion'] in ('C', 'O', 'H', 'D', 'M', 'P', 'X', 'v', 'w', '%', 'x', 'y', 'A', 'B', 'E', 'F', 'J', 'K', 'L', 'N', 'Q'
+    assert msg_P['tipoConcertacion'] in ('C', 'O', 'H', 'D', 'M', 'P', 'X', 'v', 'w', '%', 'x', 'y', 'A', 'B', 'E', 'F', 'J', 'K', 'L', 'N', 'Q')
     assert msg_P['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
     assert msg_P['tipoOperacion'] in ('E', 'C', 'B', 'D', 'W', 'X'), \
         f"El tipo de operacion '{msg_P['tipoOperacion']}' no es conocido"  # X es nuevo
     assert msg_P['importe'] > 0, "El importe de un hecho siempre debe ser mayor a cero"
-    assert msg_P['liquidacion'] in ('M', '2', '4', '7', '9', '1'), "El tipo de liquidacion no es conocido"
+    assert msg_P['liquidacion'] in ('M', '2', '4', '7', '9', '1'), \
+        f"El tipo de liquidacion {msg_P['liquidacion']} no es conocido"
     assert msg_P['indicadorSubasta'] in ('P', 'S', ' ', 'N', ''), \
         f"'{msg_P['indicadorSubasta']}' no es un tipo de subasta conocido"  # '' es nuevo.
     return msg_P
@@ -175,6 +215,12 @@ def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, d
             mensaje_p['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
             mensaje_p['timestamp'] = timestamp.now().isoformat()
             mensajes.append(mensaje_p)
+        if tipo_mensaje == 'E':
+            mensaje_e = parse_bmv_mensaje_E(packet_data[start + 2:start + longitud_msg + 2])
+            mensaje_e['key'] = f"{timestamp.strftime('%Y%m%d')}-{secuencia + i}"
+            mensaje_e['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
+            mensaje_e['timestamp'] = timestamp.now().isoformat()
+            mensajes.append(mensaje_e)
         else:
             pass  # We do not deal with any other message types.
         start += longitud_msg + 2  # add 2 to account the longitude field
@@ -198,7 +244,7 @@ def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
                 secuencia, total_mensajes, counter_msgs, paquete = parse_bmv_udp_packet(udp_packet.data, counter_msgs)
                 if not last_secuencia:
                     last_secuencia = secuencia + total_mensajes
-                    print(f"Primera secuencia es ${last_secuencia}")
+                    print(f"Primera secuencia es {last_secuencia}")
                 else:
                     if last_secuencia < secuencia:  # ToDo - check the pcaps
                         print(f"Salto de secuencia: de {last_secuencia} a {secuencia}")
@@ -207,5 +253,5 @@ def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
                     last_secuencia = secuencia + total_mensajes
                 for mensaje in paquete['mensajes']:
                     print(json.dumps(mensaje), file=output_file)
-    print(f"Ultima secuencia es ${last_secuencia}")
+    print(f"Ultima secuencia es {last_secuencia}")
     return counter_msgs
