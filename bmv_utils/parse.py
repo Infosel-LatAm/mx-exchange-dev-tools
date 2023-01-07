@@ -113,6 +113,21 @@ def parse_bmv_precio8(bytes_array: bytes) -> float:
     return precio / 100000000.0
 
 
+def parse_bmv_mensaje_H(bytes_array: bytes) -> dict:
+    """Parses an array of 9 bytes as a 'Mensaje H' as specified by BMV"""
+    msg_H: dict
+    assert len(bytes_array) == 9, f"Mensaje E debe tener 9 bytes y tiene ${len(bytes_array)}"
+    tipo_mensaje = parse_alfa(bytes_array[:1])
+    assert tipo_mensaje == 'H', "This parsing only works for mensaje E"
+    msg_H = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+             "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
+             "folioHecho": parse_bmv_int32(bytes_array[5:9]),
+             }
+    assert msg_H['numeroInstrumento'] > 0, f"Numero instrumento {msg_E['numeroInstrumento']} debe ser mayor a cero"
+    assert msg_H['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
+    # Done with checks
+    return msg_H
+
 def parse_bmv_mensaje_E(bytes_array: bytes) -> dict:
     """Parses an array of 65 bytes as a 'Mensaje E' as specified by BMV"""
     msg_E: dict
@@ -199,6 +214,7 @@ def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, d
     mensajes = []
     start = HEADER_SIZE
     for i in range(0, total_mensajes):
+        mensaje = None
         # Longitude does not include the longitude field
         longitud_msg = parse_bmv_int16(packet_data[start:start + 2])
         tipo_mensaje = parse_alfa(packet_data[start + 2:start + 3])
@@ -210,19 +226,18 @@ def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, d
             counter_msgs[tipo_mensaje]['total'] += 1
             counter_msgs[tipo_mensaje]['bytes'] += longitud_msg
         if tipo_mensaje == 'P':
-            mensaje_p = parse_bmv_mensaje_P(packet_data[start + 2:start + longitud_msg + 2])
-            mensaje_p['key'] = f"{timestamp.strftime('%Y%m%d')}-{secuencia + i}"
-            mensaje_p['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
-            mensaje_p['timestamp'] = timestamp.now().isoformat()
-            mensajes.append(mensaje_p)
+            mensaje = parse_bmv_mensaje_P(packet_data[start + 2:start + longitud_msg + 2])
         if tipo_mensaje == 'E':
-            mensaje_e = parse_bmv_mensaje_E(packet_data[start + 2:start + longitud_msg + 2])
-            mensaje_e['key'] = f"{timestamp.strftime('%Y%m%d')}-{secuencia + i}"
-            mensaje_e['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
-            mensaje_e['timestamp'] = timestamp.now().isoformat()
-            mensajes.append(mensaje_e)
+            mensaje = parse_bmv_mensaje_E(packet_data[start + 2:start + longitud_msg + 2])
+        if tipo_mensaje == 'H':
+            mensaje = parse_bmv_mensaje_H(packet_data[start + 2:start + longitud_msg + 2])
         else:
             pass  # We do not deal with any other message types.
+        if mensaje:
+            mensaje['key'] = f"{timestamp.strftime('%Y%m%d')}-{secuencia + i}"
+            mensaje['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
+            mensaje['timestamp'] = timestamp.now().isoformat()
+            mensajes.append(mensaje)
         start += longitud_msg + 2  # add 2 to account the longitude field
     paquete['mensajes'] = mensajes
     return paquete['secuencia'], paquete['total_mensajes'], counter_msgs, paquete
