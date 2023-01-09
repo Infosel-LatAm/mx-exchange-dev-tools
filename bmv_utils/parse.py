@@ -35,6 +35,28 @@ BMV_PRECIO4_FORMAT = ">i"
 BMV_PRECIO8_FORMAT = ">q"
 
 
+#
+# BMV catalogos
+#
+BMV_TIPOS_VALOR = ('1','1A', '1I', 'CF', '1R', '1B', '0', '1E', '1C', 'FF', 'FE', '41', '3', 'FH')
+BMV_BOLSA_ORIGEN = ("M","I")
+BMV_TIPOS_CONCERTACION = ('C', 'O', 'H', 'D', 'M', 'P', 'X', 'v', 'w', '%', 'x', 'y', 'A', 'B', 'E', 'F', 'J', 'K', 'L', 'N', 'Q')
+BMV_TIPOS_OPERACION = ('E', 'C', 'B', 'D', 'W', 'X')
+BMV_TIPOS_LIQUIDACION = ('M', '2', '4', '7', '9', '1')
+BMV_TIPOS_SUBASTA = ('P', 'S', ' ', 'N', '')
+
+# Catálogo de referencia
+# https://tecnologia.bmv.com.mx/especificacion/multicast/msg/structure/catalogs.html#cat_referencia
+BMV_CATALOGO_REFERENCIA = ("AN", "AJ", "", "VA")
+BMV_BURSATILIDAD = ("AL", "ME", "BA", "MI", "RC", "NU")
+BMV_MERCADOS = ("L", "G", "D", "F", "E", "M", "X", "V", "J", "B", "T", "I", "W", " ")
+
+
+
+#
+# BMV Data types parsing
+#
+
 def parse_alfa(bytes_array: bytes):
     """Parses an array of bytes as a string as specified by BMV"""
     # All ALPHA fields are ISO 8859-1, left aligned and filled on the right with spaces.
@@ -113,13 +135,17 @@ def parse_bmv_precio8(bytes_array: bytes) -> float:
     return precio / 100000000.0
 
 
+#
+# Producto 18 Messages
+#
+
 def parse_bmv_mensaje_M(bytes_array: bytes) -> dict:
     """Parses an array of 21 bytes as a 'mensaje M' as specified by BMV"""
     msg_M: dict
     assert len(bytes_array) == 21, f"Mensaje M debe tener 9 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
     assert tipo_mensaje == 'M', "This parsing only works for 'mensaje M'"
-    msg_M = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+    msg_M = {"key": 0, "tipoMensaje": tipo_mensaje,
              "precioPromedioPonderado": parse_bmv_precio8(bytes_array[9:17]),
              "volatilidad": parse_bmv_precio8(bytes_array[9:17])
              }
@@ -137,7 +163,7 @@ def parse_bmv_mensaje_H(bytes_array: bytes) -> dict:
     assert len(bytes_array) == 9, f"Mensaje H debe tener 9 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
     assert tipo_mensaje == 'H', "This parsing only works for mensaje H"
-    msg_H = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+    msg_H = {"key": 0, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "folioHecho": parse_bmv_int32(bytes_array[5:9]),
              }
@@ -153,7 +179,7 @@ def parse_bmv_mensaje_O(bytes_array: bytes) -> dict:
     assert len(bytes_array) == 19, f"Mensaje O debe tener 19 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
     assert tipo_mensaje == 'O', "This parsing only works for mensaje O"
-    msg_O = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+    msg_O = {"key": 0, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "volumen": parse_bmv_int32(bytes_array[5:9]),
              "precio": parse_bmv_precio8(bytes_array[9:17]),
@@ -174,7 +200,7 @@ def parse_bmv_mensaje_E(bytes_array: bytes) -> dict:
     assert len(bytes_array) == 65, f"Mensaje E debe tener 65 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
     assert tipo_mensaje == 'E', "This parsing only works for mensaje E"
-    msg_E = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+    msg_E = {"key": 0, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "numeroOperaciones": parse_bmv_int32(bytes_array[5:9]),
              "volumen": parse_bmv_int64(bytes_array[9:17]),
@@ -205,7 +231,7 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     assert len(bytes_array) == 52, f"Mensaje P debe tener 52 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
     assert tipo_mensaje == 'P', "This parsing only works for mensaje P"
-    msg_P = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+    msg_P = {"key": 0, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "horaHecho": parse_bmv_timestamp2(bytes_array[5:13]).isoformat(),
              "volumen": parse_bmv_int32(bytes_array[13:17]),
@@ -223,81 +249,136 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     assert msg_P['numeroInstrumento'] > 0, f"Numero instrumento {msg_P['numeroInstrumento']} debe ser mayor a cero"
     assert msg_P['volumen'] > 0, "El Volumen de un hecho siempre debe ser mayor a cero"
     assert msg_P['precio'] > 0, "El precio de un hecho siempre debe ser mayor a cero"
-    assert msg_P['tipoConcertacion'] in ('C', 'O', 'H', 'D', 'M', 'P', 'X', 'v', 'w', '%', 'x', 'y', 'A', 'B', 'E', 'F', 'J', 'K', 'L', 'N', 'Q')
+    assert msg_P['tipoConcertacion'] in BMV_TIPOS_CONCERTACION
     assert msg_P['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
-    assert msg_P['tipoOperacion'] in ('E', 'C', 'B', 'D', 'W', 'X'), \
+    assert msg_P['tipoOperacion'] in BMV_TIPOS_OPERACION, \
         f"El tipo de operacion '{msg_P['tipoOperacion']}' no es conocido"  # X es nuevo
     assert msg_P['importe'] > 0, "El importe de un hecho siempre debe ser mayor a cero"
-    assert msg_P['liquidacion'] in ('M', '2', '4', '7', '9', '1'), \
+    assert msg_P['liquidacion'] in BMV_TIPOS_LIQUIDACION, \
         f"El tipo de liquidacion {msg_P['liquidacion']} no es conocido"
-    assert msg_P['indicadorSubasta'] in ('P', 'S', ' ', 'N', ''), \
+    assert msg_P['indicadorSubasta'] in BMV_TIPOS_SUBASTA, \
         f"'{msg_P['indicadorSubasta']}' no es un tipo de subasta conocido"  # '' es nuevo.
     return msg_P
 
 
-def parse_by_message_type(tipo_mensaje:str, to_parse: bytes) -> dict:
+#
+# Producto 40 Messages
+#
+
+
+def parse_bmv_mensaje_ca(bytes_array: bytes) -> dict:
+    """Parses an array of 113 bytes as a 'catalogo ca' as specified by BMV"""
+    cat_ca: dict
+    assert len(bytes_array) == 113, f"Catalogo ca debe tener 113 bytes y tiene ${len(bytes_array)}"
+    tipo_mensaje = parse_alfa(bytes_array[0:2])  # This is two bytes for Producto 40.
+    assert tipo_mensaje == 'ca', "This parsing only works for mensaje ca"
+    cat_ca = {"key": 0, "tipoMensaje": tipo_mensaje,
+             "numeroInstrumento": parse_bmv_int32(bytes_array[2:6]),
+             "tipoValor": parse_alfa(bytes_array[6:8]),
+             "emisora": parse_alfa(bytes_array[8:15]),
+             "serie": parse_alfa(bytes_array[15:21]),
+             "ultimoPrecio": parse_bmv_precio8(bytes_array[21:29]),
+             "PPP": parse_bmv_precio8(bytes_array[29:37]),
+             "precioCierre": parse_bmv_precio8(bytes_array[37:45]),
+             "fechaReferencia": parse_bmv_timestamp1(bytes_array[45:53]).isoformat(),
+             "referencia": parse_alfa(bytes_array[53:55]),
+             "cuponVigente": parse_bmv_int16(bytes_array[55:57]),
+             "bursatilidad": parse_alfa(bytes_array[57:59]),
+             "bursatilidadNumerica": parse_bmv_precio4(bytes_array[59:63]),
+             "ISIN": parse_alfa(bytes_array[63:75]),
+             "mercado": parse_alfa(bytes_array[75:76]),
+             "valoresInscritos": parse_bmv_int64(bytes_array[76:84]),
+             "importeBloques": parse_bmv_precio8(bytes_array[84:92]),
+             "bolsaOrigen": parse_alfa(bytes_array[92:93]),
+             # There's a filler of 20 bytes, from 93 to 113 that we ignore.
+             }
+    assert cat_ca['numeroInstrumento'] > 0, f"Numero instrumento {cat_ca['numeroInstrumento']} debe ser mayor a cero."
+    # assert cat_ca['tipoValor'] in BMV_TIPOS_VALOR, f"El tipo de valor {cat_ca['tipoValor']} no esta en el catálogo."
+    if cat_ca['tipoValor'] not in BMV_TIPOS_VALOR:
+        print(f"Tipo de valor {cat_ca['tipoValor']}")
+    assert cat_ca['ultimoPrecio'] >= 0.0, "El ultimo precio debe >= 0.0"
+    assert cat_ca['PPP'] >= 0.0, "El PPP debe ser >= 0.0"
+    assert cat_ca['precioCierre'] >= 0.0, "El precio de cierre debe ser >= 0.0"
+    # assert cat_ca['fechaReferencia'] is True, "ToDo"
+    assert cat_ca['referencia'] in BMV_CATALOGO_REFERENCIA, f"La Referencia {cat_ca['referencia']} no esta en el catálogo."
+    assert cat_ca['cuponVigente'] >= 0, "El cupon vigente debe ser mayor o igual a cero."
+    assert cat_ca['bursatilidad'] in BMV_BURSATILIDAD, f"La bursatilidad '{cat_ca['bursatilidad']}' no es conocida."  
+    assert cat_ca['bursatilidadNumerica'] >= 0.0, "La Bursatilidad Numérica debe ser >= 0.0"
+    assert cat_ca['mercado'] in BMV_MERCADOS, f"El mercado {cat_ca['mercado']} no es conocido."
+    assert cat_ca['valoresInscritos'] > 0, "Los valores inscritos deben ser mayores a cero." 
+    assert cat_ca['importeBloques'] >= 0.0, "El importe de bloques debe ser >= 0.0"
+    assert cat_ca['bolsaOrigen'] != None, "La Bolsa origen debe estar definida."
+    if cat_ca['bolsaOrigen'] not in BMV_BOLSA_ORIGEN:
+        print(f"Bolsa origen {cat_ca['bolsaOrigen']}")
+    return cat_ca
+
+
+
+def parse_by_message_type(grupo_market_data, to_parse: bytes) -> dict:
     """Given a tipo_mensaje we assume matches the bytes array, we call the appropiate parsing function
     Returns:
         mensaje: A dictionary with the parsed fields
     """
     mensaje = None
-    if tipo_mensaje == 'P':
-        mensaje = parse_bmv_mensaje_P(to_parse)
-    if tipo_mensaje == 'E':
-        mensaje = parse_bmv_mensaje_E(to_parse)
-    if tipo_mensaje == 'H':
-        mensaje = parse_bmv_mensaje_H(to_parse)
-    if tipo_mensaje == 'O':
-        mensaje = parse_bmv_mensaje_O(to_parse)
-    if tipo_mensaje == 'M':
-        mensaje = parse_bmv_mensaje_M(to_parse)
+    # Select how big is the tipo_mensaje field based on the grupo_market_data
+    if grupo_market_data == 18:
+        tipo_mensaje = parse_alfa(to_parse[0:1])
+    elif grupo_market_data == 40:
+        tipo_mensaje = parse_alfa(to_parse[0:2])
+    # Based on the tipo_mensaje, parse the message
+    match tipo_mensaje:
+        case 'P':
+            mensaje = parse_bmv_mensaje_P(to_parse)
+        case 'E':
+         mensaje = parse_bmv_mensaje_E(to_parse)
+        case 'H':
+            mensaje = parse_bmv_mensaje_H(to_parse)
+        case 'O':
+            mensaje = parse_bmv_mensaje_O(to_parse)
+        case 'M':
+            mensaje = parse_bmv_mensaje_M(to_parse)
+        case 'ca':
+            mensaje = parse_bmv_mensaje_ca(to_parse)
     return mensaje       
         
 
-
-def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict):
+def parse_bmv_udp_packet(packet_data: bytes):
     """Parses an udp packet as containing a header and 1 or more messages, as specified by BMV"""
     paquete = {}
     longitud = parse_bmv_int16(packet_data[:2])
-    # assert longitud == len(packet_data), "Longitud $(longitud) must be equal to the packet size $(len(packet.data))"
+    assert longitud == len(packet_data), f"Longitud {longitud} must be equal to the packet size {len(packet_data)})"
     paquete['longitud'] = longitud
     total_mensajes = parse_bmv_int8(packet_data[2:3])
-    # assert total_mensajes >= 0, "We need a 0 or positive number"
+    assert total_mensajes >= 0, "We need a 0 or positive number"
     paquete['total_mensajes'] = total_mensajes
     paquete['grupo_market_data'] = parse_bmv_int8(packet_data[3:4])
-    assert paquete['grupo_market_data'] == 18, "We only deal with grupo 18 BMV messages"
+    assert paquete['grupo_market_data'] in (18,40), "We only deal with grupo 18 or grupo 40 BMV messages"
     paquete['sesion'] = parse_bmv_int8(packet_data[4:5])
     # http://tecnologia.bmv.com.mx:6503/especificacion/multicast/msg/structure/catalogs.html#cat_grupo_market_data
-    # assert 0 <= paquete['sesion'] <= 40, "La sesion debe estar entre 1, y 40"
+    assert 0 <= paquete['sesion'] <= 40, "La sesion debe estar entre 0, y 40"
     paquete['secuencia'] = secuencia = parse_bmv_int32(packet_data[5:9])
+    assert 0 <= paquete['secuencia'], "La secuencia debe ser mayor a cero."
     paquete['timestamp'] = timestamp = parse_bmv_timestamp3(packet_data[9:HEADER_SIZE])
     mensajes = []
     start = HEADER_SIZE
     for i in range(0, total_mensajes):
         # Longitude does not include the longitude field
         longitud_msg = parse_bmv_int16(packet_data[start:start + 2])
-        tipo_mensaje = parse_alfa(packet_data[start + 2:start + 3])
         to_parse = packet_data[start + 2:start + longitud_msg + 2]
-        if tipo_mensaje not in counter_msgs:
-            counter_msgs[tipo_mensaje] = {}
-            counter_msgs[tipo_mensaje]['total'] = 1
-            counter_msgs[tipo_mensaje]['bytes'] = longitud_msg
-        else:
-            counter_msgs[tipo_mensaje]['total'] += 1
-            counter_msgs[tipo_mensaje]['bytes'] += longitud_msg
-        mensaje = parse_by_message_type(tipo_mensaje, to_parse)
+        mensaje = parse_by_message_type(paquete['grupo_market_data'], to_parse)
         if mensaje:
             mensaje['key'] = f"{timestamp.strftime('%Y%m%d')}-{secuencia + i}"
             mensaje['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
             mensaje['timestamp'] = timestamp.now().isoformat()
+            mensaje['longitud'] = longitud_msg
             mensajes.append(mensaje)
         start += longitud_msg + 2  # add 2 to account the longitude field
     paquete['mensajes'] = mensajes
-    return paquete['secuencia'], paquete['total_mensajes'], counter_msgs, paquete
+    return paquete['secuencia'], paquete['total_mensajes'], paquete
 
 
-def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
-    """Parses a complete cap file assuming it has only udp packets from BMV 'producto 18'"""
+def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
+    """Parses a complete cap file assuming it has only udp packets from BMV 'producto 18' or 'producto 40'"""
     pcap = dpkt.pcap.Reader(input_file)
     # We will keep basic statistics of how many messages we process per each type.
     counter_msgs = {}
@@ -309,7 +390,7 @@ def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
             ip = eth.data
             if ip.p == dpkt.ip.IP_PROTO_UDP:  # Comprobar que vengan de la direccion correcta
                 udp_packet = ip.data
-                secuencia, total_mensajes, counter_msgs, paquete = parse_bmv_udp_packet(udp_packet.data, counter_msgs)
+                secuencia, total_mensajes, paquete = parse_bmv_udp_packet(udp_packet.data)
                 if not last_secuencia:
                     last_secuencia = secuencia + total_mensajes
                     print(f"Primera secuencia es {last_secuencia}")
@@ -320,6 +401,14 @@ def parse_pcap_file(input_file: BufferedReader, output_file) -> dict:
                         print(f"Mensajes en desorden: {last_secuencia} a {secuencia}")
                     last_secuencia = secuencia + total_mensajes
                 for mensaje in paquete['mensajes']:
+                    tipo_msg = mensaje['tipoMensaje']
+                    if tipo_msg not in counter_msgs:
+                        counter_msgs[tipo_msg] = {}
+                        counter_msgs[tipo_msg]['total'] = 1
+                        counter_msgs[tipo_msg]['bytes'] = mensaje['longitud']
+                    else:
+                        counter_msgs[tipo_msg]['total'] += 1
+                        counter_msgs[tipo_msg]['bytes'] += mensaje['longitud']
                     print(json.dumps(mensaje), file=output_file)
     print(f"Ultima secuencia es {last_secuencia}")
     return counter_msgs
