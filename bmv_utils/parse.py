@@ -113,17 +113,35 @@ def parse_bmv_precio8(bytes_array: bytes) -> float:
     return precio / 100000000.0
 
 
+def parse_bmv_mensaje_M(bytes_array: bytes) -> dict:
+    """Parses an array of 21 bytes as a 'mensaje M' as specified by BMV"""
+    msg_M: dict
+    assert len(bytes_array) == 21, f"Mensaje M debe tener 9 bytes y tiene ${len(bytes_array)}"
+    tipo_mensaje = parse_alfa(bytes_array[:1])
+    assert tipo_mensaje == 'M', "This parsing only works for 'mensaje M'"
+    msg_M = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
+             "precioPromedioPonderado": parse_bmv_precio8(bytes_array[9:17]),
+             "volatilidad": parse_bmv_precio8(bytes_array[9:17])
+             }
+    assert msg_M['numeroInstrumento'] > 0, f"Numero instrumento {msg_M['numeroInstrumento']} debe ser mayor a cero"
+    assert msg_M['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
+    assert msg_M['precioPromedioPonderado'] > 0, "El Precio Promedio Ponderado debe ser mayor a cero"
+    assert msg_M['volatilidad'] > 0, "La Volatilidad debe ser mayor a cero"
+    # Done with checks
+    return msg_M
+
+
 def parse_bmv_mensaje_H(bytes_array: bytes) -> dict:
     """Parses an array of 9 bytes as a 'Mensaje H' as specified by BMV"""
     msg_H: dict
-    assert len(bytes_array) == 9, f"Mensaje E debe tener 9 bytes y tiene ${len(bytes_array)}"
+    assert len(bytes_array) == 9, f"Mensaje H debe tener 9 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'H', "This parsing only works for mensaje E"
+    assert tipo_mensaje == 'H', "This parsing only works for mensaje H"
     msg_H = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "folioHecho": parse_bmv_int32(bytes_array[5:9]),
              }
-    assert msg_H['numeroInstrumento'] > 0, f"Numero instrumento {msg_E['numeroInstrumento']} debe ser mayor a cero"
+    assert msg_H['numeroInstrumento'] > 0, f"Numero instrumento {msg_H['numeroInstrumento']} debe ser mayor a cero"
     assert msg_H['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
     # Done with checks
     return msg_H
@@ -134,7 +152,7 @@ def parse_bmv_mensaje_O(bytes_array: bytes) -> dict:
     msg_O: dict
     assert len(bytes_array) == 19, f"Mensaje O debe tener 19 bytes y tiene ${len(bytes_array)}"
     tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'O', "This parsing only works for mensaje E"
+    assert tipo_mensaje == 'O', "This parsing only works for mensaje O"
     msg_O = {"key": 0, "timestamp": '-', "fechaHora": '-', "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "volumen": parse_bmv_int32(bytes_array[5:9]),
@@ -217,7 +235,27 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     return msg_P
 
 
-def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, dict, dict):
+def parse_by_message_type(tipo_mensaje:str, to_parse: bytes) -> dict:
+    """Given a tipo_mensaje we assume matches the bytes array, we call the appropiate parsing function
+    Returns:
+        mensaje: A dictionary with the parsed fields
+    """
+    mensaje = None
+    if tipo_mensaje == 'P':
+        mensaje = parse_bmv_mensaje_P(to_parse)
+    if tipo_mensaje == 'E':
+        mensaje = parse_bmv_mensaje_E(to_parse)
+    if tipo_mensaje == 'H':
+        mensaje = parse_bmv_mensaje_H(to_parse)
+    if tipo_mensaje == 'O':
+        mensaje = parse_bmv_mensaje_O(to_parse)
+    if tipo_mensaje == 'M':
+        mensaje = parse_bmv_mensaje_M(to_parse)
+    return mensaje       
+        
+
+
+def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict):
     """Parses an udp packet as containing a header and 1 or more messages, as specified by BMV"""
     paquete = {}
     longitud = parse_bmv_int16(packet_data[:2])
@@ -236,7 +274,6 @@ def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, d
     mensajes = []
     start = HEADER_SIZE
     for i in range(0, total_mensajes):
-        mensaje = None
         # Longitude does not include the longitude field
         longitud_msg = parse_bmv_int16(packet_data[start:start + 2])
         tipo_mensaje = parse_alfa(packet_data[start + 2:start + 3])
@@ -248,16 +285,7 @@ def parse_bmv_udp_packet(packet_data: bytes, counter_msgs: dict) -> (int, int, d
         else:
             counter_msgs[tipo_mensaje]['total'] += 1
             counter_msgs[tipo_mensaje]['bytes'] += longitud_msg
-        if tipo_mensaje == 'P':
-            mensaje = parse_bmv_mensaje_P(to_parse)
-        if tipo_mensaje == 'E':
-            mensaje = parse_bmv_mensaje_E(to_parse)
-        if tipo_mensaje == 'H':
-            mensaje = parse_bmv_mensaje_H(to_parse)
-        if tipo_mensaje == 'O':
-            mensaje = parse_bmv_mensaje_O(to_parse)
-        else:
-            pass  # We do not deal with any other message types.
+        mensaje = parse_by_message_type(tipo_mensaje, to_parse)
         if mensaje:
             mensaje['key'] = f"{timestamp.strftime('%Y%m%d')}-{secuencia + i}"
             mensaje['fechaHora'] = timestamp.isoformat(timespec='milliseconds')
