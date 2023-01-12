@@ -8,11 +8,6 @@ import json
 import struct
 from datetime import datetime
 
-BMV_PROD18_GRP_A = "239.100.100.18"  # Grupo UDP para producto 18 de BMV, feed A
-BMV_PROD18_PORT_A = 12121
-BMV_PROD18_GRP_B = "239.100.200.18"  # Grupo UDP para producto 18 de BMV, feed B
-BMV_PROD18_PORT_B = 12122
-
 HEADER_SIZE = 17
 
 # Based on the documentation available here
@@ -374,7 +369,7 @@ def parse_bmv_udp_packet(packet_data: bytes):
             mensajes.append(mensaje)
         start += longitud_msg + 2  # add 2 to account the longitude field
     paquete['mensajes'] = mensajes
-    return paquete['secuencia'], paquete['total_mensajes'], paquete
+    return paquete
 
 
 def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
@@ -390,16 +385,16 @@ def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
             ip = eth.data
             if ip.p == dpkt.ip.IP_PROTO_UDP:  # Comprobar que vengan de la direccion correcta
                 udp_packet = ip.data
-                secuencia, total_mensajes, paquete = parse_bmv_udp_packet(udp_packet.data)
+                paquete = parse_bmv_udp_packet(udp_packet.data)
                 if not last_secuencia:
-                    last_secuencia = secuencia + total_mensajes
+                    last_secuencia = paquete['secuencia'] + paquete['total_mensajes']
                     print(f"Primera secuencia es {last_secuencia}")
                 else:
-                    if last_secuencia < secuencia:  # ToDo - check the pcaps
-                        print(f"Salto de secuencia: de {last_secuencia} a {secuencia}")
-                    elif last_secuencia > secuencia:
-                        print(f"Mensajes en desorden: {last_secuencia} a {secuencia}")
-                    last_secuencia = secuencia + total_mensajes
+                    if last_secuencia < paquete['secuencia']:  # ToDo - check the pcaps
+                        print(f"Salto de secuencia: de {last_secuencia} a {paquete['secuencia']}")
+                    elif last_secuencia > paquete['secuencia']:
+                        print(f"Mensajes en desorden: {last_secuencia} a {paquete['secuencia']}")
+                    last_secuencia = paquete['secuencia'] + paquete['total_mensajes']
                 for mensaje in paquete['mensajes']:
                     tipo_msg = mensaje['tipoMensaje']
                     if tipo_msg not in counter_msgs:
@@ -411,4 +406,4 @@ def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
                         counter_msgs[tipo_msg]['bytes'] += mensaje['longitud']
                     print(json.dumps(mensaje), file=output_file)
     print(f"Ultima secuencia es {last_secuencia}")
-    return counter_msgs
+    return counter_msgs, paquete
