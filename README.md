@@ -1,7 +1,7 @@
-This tools apply for development of the Mexican exchange BMV
+Tools that help dealing with Market Data from the BMV - Bolsa Mexicana de Valores (Mexican Stock Exchange)
 
 Herramientas para la Bolsa Mexicana de Valores
 
 # mx-exchange-replay-server-simulator
-This script simulates the BMV service for multicast replay
+Simulates the BMV service for multicast replay
 
