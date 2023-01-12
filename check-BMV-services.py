@@ -82,35 +82,34 @@ def check_BMV_producto(group, port, label):
         print('Exception')
     else:
         paquete = bmv_utils.parse.parse_bmv_udp_packet(udp_packet)
-        print(f"sq {paquete['secuencia']} "
-              f"ts {paquete['timestamp']} -",
-              f"{group}:{port} {label}")
+        print(f"{paquete['timestamp']} - sq {paquete['secuencia']} "
+              f"{label} {group}:{port} ")
 
 
 if __name__ == '__main__':
     counter_msgs = {}
-    # Producto 18
-    print("PRODUCTO 18")
     print("PROD")
+    print("PRODUCTO 18")
     check_BMV_producto(BMV_PROD18_PROD_GROUP_A, BMV_PROD18_PROD_PORT_A, "Puerto A")
     check_BMV_producto(BMV_PROD18_PROD_GROUP_B, BMV_PROD18_PROD_PORT_B, "Puerto B")
-    print("DRP")
-    check_BMV_producto(BMV_PROD18_DRP_GROUP_A, BMV_PROD18_DRP_PORT_A, "Puerto A")
-    check_BMV_producto(BMV_PROD18_DRP_GROUP_B, BMV_PROD18_DRP_PORT_B, "Puerto B")
-    print("TEST")
-    check_BMV_producto(BMV_PROD18_DRP_GROUP_A, BMV_PROD18_DRP_PORT_A, "Puerto A")
-    check_BMV_producto(BMV_PROD18_DRP_GROUP_B, BMV_PROD18_DRP_PORT_B, "Puerto B")
-    # Producto 40
     print("PRODUCTO 40")
-    print("PROD")
     check_BMV_producto(BMV_PROD40_PROD_GROUP_A, BMV_PROD40_PROD_PORT_A, "Puerto A")
     check_BMV_producto(BMV_PROD40_PROD_GROUP_B, BMV_PROD40_PROD_PORT_B, "Puerto B")
     print("DRP")
+    print("PRODUCTO 18")
+    check_BMV_producto(BMV_PROD18_DRP_GROUP_A, BMV_PROD18_DRP_PORT_A, "Puerto A")
+    check_BMV_producto(BMV_PROD18_DRP_GROUP_B, BMV_PROD18_DRP_PORT_B, "Puerto B")
+    print("PRODUCTO 40")
     check_BMV_producto(BMV_PROD40_DRP_GROUP_A, BMV_PROD40_DRP_PORT_A, "Puerto A")
     check_BMV_producto(BMV_PROD40_DRP_GROUP_B, BMV_PROD40_DRP_PORT_B, "Puerto B")
     print("TEST")
+    print("PRODUCTO 18")
+    check_BMV_producto(BMV_PROD18_DRP_GROUP_A, BMV_PROD18_DRP_PORT_A, "Puerto A")
+    check_BMV_producto(BMV_PROD18_DRP_GROUP_B, BMV_PROD18_DRP_PORT_B, "Puerto B")
+    print("PRODUCTO 40")
     check_BMV_producto(BMV_PROD40_TEST_GROUP_A, BMV_PROD40_TEST_PORT_A, "Puerto A")
     check_BMV_producto(BMV_PROD40_TEST_GROUP_B, BMV_PROD40_TEST_PORT_B, "Puerto B")
+    
 
 
 # Paquete de prueba
