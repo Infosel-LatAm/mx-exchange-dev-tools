@@ -144,10 +144,10 @@ def parse_bmv_mensaje_M(bytes_array: bytes) -> dict:
              "precioPromedioPonderado": parse_bmv_precio8(bytes_array[9:17]),
              "volatilidad": parse_bmv_precio8(bytes_array[9:17])
              }
-    assert msg_M['numeroInstrumento'] > 0, f"Numero instrumento {msg_M['numeroInstrumento']} debe ser mayor a cero"
-    assert msg_M['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
-    assert msg_M['precioPromedioPonderado'] > 0, "El Precio Promedio Ponderado debe ser mayor a cero"
-    assert msg_M['volatilidad'] > 0, "La Volatilidad debe ser mayor a cero"
+    assert int(msg_M['numeroInstrumento']) > 0, f"Numero instrumento {msg_M['numeroInstrumento']} debe ser mayor a cero"
+    assert int(msg_M['folioHecho']) > 0.0, "El folio del hecho debe ser mayor a cero"
+    assert float(msg_M['precioPromedioPonderado']) > 0.0, "El Precio Promedio Ponderado debe ser mayor a cero"
+    assert float(msg_M['volatilidad']) > 0.0, "La Volatilidad debe ser mayor a cero"
     # Done with checks
     return msg_M
 
@@ -162,8 +162,8 @@ def parse_bmv_mensaje_H(bytes_array: bytes) -> dict:
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "folioHecho": parse_bmv_int32(bytes_array[5:9]),
              }
-    assert msg_H['numeroInstrumento'] > 0, f"Numero instrumento {msg_H['numeroInstrumento']} debe ser mayor a cero"
-    assert msg_H['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
+    assert int(msg_H['numeroInstrumento']) > 0, f"Numero instrumento {msg_H['numeroInstrumento']} debe ser mayor a cero"
+    assert int(msg_H['folioHecho']) > 0, "El folio del hecho debe ser mayor a cero"
     # Done with checks
     return msg_H
 
@@ -181,9 +181,9 @@ def parse_bmv_mensaje_O(bytes_array: bytes) -> dict:
              "sentido": parse_alfa(bytes_array[17:18]),
              "tipo": parse_alfa(bytes_array[18:19])
              }
-    assert msg_O['numeroInstrumento'] > 0, f"Numero instrumento {msg_O['numeroInstrumento']} debe ser mayor a cero"
-    assert msg_O['volumen'] >= 0, "El Volumen acumulado debe ser cero o mayor"
-    assert msg_O['precio'] >= 0, f"El precio  {msg_O['precio']} debe ser mayor o igual a cero"
+    assert int(msg_O['numeroInstrumento']) > 0, f"Numero instrumento {msg_O['numeroInstrumento']} debe ser mayor a cero"
+    assert int(msg_O['volumen']) >= 0, "El Volumen acumulado debe ser cero o mayor"
+    assert float(msg_O['precio']) >= 0.0, f"El precio  {msg_O['precio']} debe ser mayor o igual a cero"
     assert msg_O['sentido'] in ('C', 'V'), f"El sentido '{msg_O['sentido']}' no es conocido"
     assert msg_O['tipo'] in ('C', 'H', 'P', 'N'), f"El tipo '{msg_O['tipo']}' no es conocido"  
     # Done with checks
@@ -206,15 +206,15 @@ def parse_bmv_mensaje_E(bytes_array: bytes) -> dict:
              "promedio": parse_bmv_precio8(bytes_array[49:57]),
              "last": parse_bmv_precio8(bytes_array[57:65])
              }
-    assert msg_E['numeroInstrumento'] > 0, f"Numero instrumento {msg_E['numeroInstrumento']} debe ser mayor a cero"
-    assert msg_E['numeroOperaciones'] >= 0, "El numero de operaciones es cero o mayor"
-    assert msg_E['volumen'] >= 0, "El Volumen acumulado debe ser cero o mayor"
-    assert msg_E['importe'] >= 0, "El importe acumulado debe ser cero o mayor"
-    assert msg_E['apertura'] >= 0, f"El precio de apertura {msg_E['apertura']} debe ser mayor o igual a cero"
-    assert msg_E['maximo'] >= 0, f"El precio maximo {msg_E['maximo']} debe ser mayor o igual a cero"
-    assert msg_E['minimo'] >= 0, f"El precio minimo {msg_E['minimo']} debe ser mayor o igual a cero"
-    assert msg_E['promedio'] >= 0, f"El precio promedio {msg_E['promedio']} debe ser mayor o igual a cero"
-    assert msg_E['last'] > 0, f"El ultimo precio {msg_E['last']} debe ser mayor a cero"
+    assert int(msg_E['numeroInstrumento']) > 0, f"Numero instrumento {msg_E['numeroInstrumento']} debe ser mayor a cero"
+    assert int(msg_E['numeroOperaciones']) >= 0, "El numero de operaciones es cero o mayor"
+    assert int(msg_E['volumen']) >= 0, "El Volumen acumulado debe ser cero o mayor"
+    assert float(msg_E['importe']) >= 0.0, "El importe acumulado debe ser cero o mayor"
+    assert float(msg_E['apertura']) >= 0.0, f"El precio de apertura {msg_E['apertura']} debe ser mayor o igual a cero"
+    assert float(msg_E['maximo']) >= 0.0, f"El precio maximo {msg_E['maximo']} debe ser mayor o igual a cero"
+    assert float(msg_E['minimo']) >= 0.0, f"El precio minimo {msg_E['minimo']} debe ser mayor o igual a cero"
+    assert float(msg_E['promedio']) >= 0.0, f"El precio promedio {msg_E['promedio']} debe ser mayor o igual a cero"
+    assert float(msg_E['last']) > 0.0, f"El ultimo precio {msg_E['last']} debe ser mayor a cero"
     # Done with checks
     return msg_E
 
@@ -241,14 +241,14 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
              "liquidacion": parse_alfa(bytes_array[50:51]),
              "indicadorSubasta": parse_alfa(bytes_array[51:52])
              }
-    assert msg_P['numeroInstrumento'] > 0, f"Numero instrumento {msg_P['numeroInstrumento']} debe ser mayor a cero"
-    assert msg_P['volumen'] > 0, "El Volumen de un hecho siempre debe ser mayor a cero"
-    assert msg_P['precio'] > 0, "El precio de un hecho siempre debe ser mayor a cero"
+    assert int(msg_P['numeroInstrumento']) > 0, f"Numero instrumento {msg_P['numeroInstrumento']} debe ser mayor a cero"
+    assert int(msg_P['volumen']) > 0, "El Volumen de un hecho siempre debe ser mayor a cero"
+    assert float(msg_P['precio']) > 0.0, "El precio de un hecho siempre debe ser mayor a cero"
     assert msg_P['tipoConcertacion'] in BMV_TIPOS_CONCERTACION
-    assert msg_P['folioHecho'] > 0, "El folio del hecho debe ser mayor a cero"
+    assert int(msg_P['folioHecho']) > 0, "El folio del hecho debe ser mayor a cero"
     assert msg_P['tipoOperacion'] in BMV_TIPOS_OPERACION, \
         f"El tipo de operacion '{msg_P['tipoOperacion']}' no es conocido"  # X es nuevo
-    assert msg_P['importe'] > 0, "El importe de un hecho siempre debe ser mayor a cero"
+    assert float(msg_P['importe']) > 0.0, "El importe de un hecho siempre debe ser mayor a cero"
     assert msg_P['liquidacion'] in BMV_TIPOS_LIQUIDACION, \
         f"El tipo de liquidacion {msg_P['liquidacion']} no es conocido"
     assert msg_P['indicadorSubasta'] in BMV_TIPOS_SUBASTA, \
@@ -287,21 +287,21 @@ def parse_bmv_mensaje_ca(bytes_array: bytes) -> dict:
              "bolsaOrigen": parse_alfa(bytes_array[92:93]),
              # There's a filler of 20 bytes, from 93 to 113 that we ignore.
              }
-    assert cat_ca['numeroInstrumento'] > 0, f"Numero instrumento {cat_ca['numeroInstrumento']} debe ser mayor a cero."
+    assert int(cat_ca['numeroInstrumento']) > 0, f"Numero instrumento {cat_ca['numeroInstrumento']} debe ser mayor a cero."
     # assert cat_ca['tipoValor'] in BMV_TIPOS_VALOR, f"El tipo de valor {cat_ca['tipoValor']} no esta en el catálogo."
     if cat_ca['tipoValor'] not in BMV_TIPOS_VALOR:
         print(f"Tipo de valor {cat_ca['tipoValor']}")
-    assert cat_ca['ultimoPrecio'] >= 0.0, "El ultimo precio debe >= 0.0"
-    assert cat_ca['PPP'] >= 0.0, "El PPP debe ser >= 0.0"
-    assert cat_ca['precioCierre'] >= 0.0, "El precio de cierre debe ser >= 0.0"
+    assert float(cat_ca['ultimoPrecio']) >= 0.0, "El ultimo precio debe >= 0.0"
+    assert float(cat_ca['PPP']) >= 0.0, "El PPP debe ser >= 0.0"
+    assert float(cat_ca['precioCierre']) >= 0.0, "El precio de cierre debe ser >= 0.0"
     # assert cat_ca['fechaReferencia'] is True, "ToDo"
     assert cat_ca['referencia'] in BMV_CATALOGO_REFERENCIA, f"La Referencia {cat_ca['referencia']} no esta en el catálogo."
-    assert cat_ca['cuponVigente'] >= 0, "El cupon vigente debe ser mayor o igual a cero."
+    assert float(cat_ca['cuponVigente']) >= 0, "El cupon vigente debe ser mayor o igual a cero."
     assert cat_ca['bursatilidad'] in BMV_BURSATILIDAD, f"La bursatilidad '{cat_ca['bursatilidad']}' no es conocida."  
-    assert cat_ca['bursatilidadNumerica'] >= 0.0, "La Bursatilidad Numérica debe ser >= 0.0"
+    assert float(cat_ca['bursatilidadNumerica']) >= 0.0, "La Bursatilidad Numérica debe ser >= 0.0"
     assert cat_ca['mercado'] in BMV_MERCADOS, f"El mercado {cat_ca['mercado']} no es conocido."
-    assert cat_ca['valoresInscritos'] > 0, "Los valores inscritos deben ser mayores a cero." 
-    assert cat_ca['importeBloques'] >= 0.0, "El importe de bloques debe ser >= 0.0"
+    assert float(cat_ca['valoresInscritos']) > 0, "Los valores inscritos deben ser mayores a cero." 
+    assert float(cat_ca['importeBloques']) >= 0.0, "El importe de bloques debe ser >= 0.0"
     assert cat_ca['bolsaOrigen'] != None, "La Bolsa origen debe estar definida."
     if cat_ca['bolsaOrigen'] not in BMV_BOLSA_ORIGEN:
         print(f"Bolsa origen {cat_ca['bolsaOrigen']}")
@@ -309,12 +309,13 @@ def parse_bmv_mensaje_ca(bytes_array: bytes) -> dict:
 
 
 
-def parse_by_message_type(grupo_market_data, to_parse: bytes) -> dict:
+def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
     """Given a tipo_mensaje we assume matches the bytes array, we call the appropiate parsing function
     Returns:
         mensaje: A dictionary with the parsed fields
     """
     mensaje = None
+    tipo_mensaje: str
     # Select how big is the tipo_mensaje field based on the grupo_market_data
     if grupo_market_data == 18:
         tipo_mensaje = parse_alfa(to_parse[0:1])
@@ -337,10 +338,10 @@ def parse_by_message_type(grupo_market_data, to_parse: bytes) -> dict:
     return mensaje       
         
 
-def parse_bmv_udp_packet(packet_data: bytes):
+def parse_bmv_udp_packet(packet_data: bytes) -> dict:
     """Parses an udp packet as containing a header and 1 or more messages, as specified by BMV"""
     paquete = {}
-    longitud = parse_bmv_int16(packet_data[:2])
+    longitud:int = parse_bmv_int16(packet_data[:2])
     assert longitud == len(packet_data), f"Longitud {longitud} must be equal to the packet size {len(packet_data)})"
     paquete['longitud'] = longitud
     total_mensajes = parse_bmv_int8(packet_data[2:3])
@@ -378,32 +379,43 @@ def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
     # We will keep basic statistics of how many messages we process per each type.
     counter_msgs = {}
 
-    last_secuencia = None
+    last_sequence = None
     for timestamp, pkt in pcap:
-        eth = dpkt.ethernet.Ethernet(pkt)
-        if eth.type == dpkt.ethernet.ETH_TYPE_IP:
-            ip = eth.data
-            if ip.p == dpkt.ip.IP_PROTO_UDP:  # Comprobar que vengan de la direccion correcta
+        try:
+            eth:dpkt.ethernet.Ethernet = dpkt.ethernet.Ethernet(pkt)
+            ip:dpkt.ip.IP = eth.data
+            if ip.p == dpkt.ip.IP_PROTO_UDP:  # Make sure is UDP.    
                 udp_packet = ip.data
-                paquete = parse_bmv_udp_packet(udp_packet.data)
-                if not last_secuencia:
-                    last_secuencia = paquete['secuencia'] + paquete['total_mensajes']
-                    print(f"Primera secuencia es {last_secuencia}")
-                else:
-                    if last_secuencia < paquete['secuencia']:  # ToDo - check the pcaps
-                        print(f"Salto de secuencia: de {last_secuencia} a {paquete['secuencia']}")
-                    elif last_secuencia > paquete['secuencia']:
-                        print(f"Mensajes en desorden: {last_secuencia} a {paquete['secuencia']}")
-                    last_secuencia = paquete['secuencia'] + paquete['total_mensajes']
-                for mensaje in paquete['mensajes']:
-                    tipo_msg = mensaje['tipoMensaje']
-                    if tipo_msg not in counter_msgs:
-                        counter_msgs[tipo_msg] = {}
-                        counter_msgs[tipo_msg]['total'] = 1
-                        counter_msgs[tipo_msg]['bytes'] = mensaje['longitud']
-                    else:
-                        counter_msgs[tipo_msg]['total'] += 1
-                        counter_msgs[tipo_msg]['bytes'] += mensaje['longitud']
-                    print(json.dumps(mensaje), file=output_file)
-    print(f"Ultima secuencia es {last_secuencia}")
-    return counter_msgs, paquete
+                last_sequence = process_bmv_udp_packet(output_file, counter_msgs, last_sequence, udp_packet)
+        except Exception as e:
+            # We will try to continue parsing the file, even if we have an error
+            # Until now we find that the last sequence is incomplete or corrupted so 
+            # we try to ignored it.
+            print(e)
+            print(f"Unexpected error on sequence {last_sequence}, trying to continue...")
+            continue
+    print(f"Last found sequence is {last_sequence}")
+    return counter_msgs
+
+def process_bmv_udp_packet(output_file, counter_msgs, last_sequence, udp_packet) -> int:
+    paquete = parse_bmv_udp_packet(udp_packet.data)
+    if not last_sequence:
+        last_sequence = paquete['secuencia'] + paquete['total_mensajes']
+        print(f"Primera secuencia es {last_sequence}")
+    else:
+        if last_sequence < paquete['secuencia']:  # ToDo - check the pcaps
+            print(f"Salto de secuencia: de {last_sequence} a {paquete['secuencia']}")
+        elif last_sequence > paquete['secuencia']:
+            print(f"Mensajes en desorden: {last_sequence} a {paquete['secuencia']}")
+        last_sequence = paquete['secuencia'] + paquete['total_mensajes']
+    for mensaje in paquete['mensajes']:
+        tipo_msg = mensaje['tipoMensaje']
+        if tipo_msg not in counter_msgs:
+            counter_msgs[tipo_msg] = {}
+            counter_msgs[tipo_msg]['total'] = 1
+            counter_msgs[tipo_msg]['bytes'] = mensaje['longitud']
+        else:
+            counter_msgs[tipo_msg]['total'] += 1
+            counter_msgs[tipo_msg]['bytes'] += mensaje['longitud']
+        print(json.dumps(mensaje), file=output_file)
+    return last_sequence
