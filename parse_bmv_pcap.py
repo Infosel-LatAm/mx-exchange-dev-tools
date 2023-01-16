@@ -13,7 +13,7 @@ import bmv_utils.parse
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print('[Error] Usage: parse_bmv_pcap.py [file.pcap] [output.json]')
-        print('reads the pcap file assuming is capture from BMV multicast and generates a json file with the messages')
+        print('Reads the pcap file assuming is capture from BMV multicast and generates a json file with the messages')
         sys.exit(1)
     pcap_filename = sys.argv[1]
     json_output_filename = sys.argv[2]
