@@ -40,6 +40,13 @@ BMV_TIPOS_OPERACION = ('E', 'C', 'B', 'D', 'W', 'X')
 BMV_TIPOS_LIQUIDACION = ('M', '2', '4', '7', '9', '1')
 BMV_TIPOS_SUBASTA = ('P', 'S', ' ', 'N', '')
 
+BMV_TIPOS_WARRANT = ("C","V")
+BMV_TIPOS_BOLSA_ORIGEN = ('M', 'I')
+BMV_TIPOS_OPERA_TASA_PRECIO=['P','T']
+BMV_TIPOS_OPCION = ('C', 'P')
+BMV_TIPOS_VENCIMIENTO_DIARIO = ('1', '0')
+BMV_TIPOS_ESTRATEGIA = ('R', 'E', 'F')
+
 # Catálogo de referencia
 # https://tecnologia.bmv.com.mx/especificacion/multicast/msg/structure/catalogs.html#cat_referencia
 BMV_CATALOGO_REFERENCIA = ("AN", "AJ", "", "VA")
@@ -52,7 +59,7 @@ BMV_MERCADOS = ("L", "G", "D", "F", "E", "M", "X", "V", "J", "B", "T", "I", "W",
 # BMV Data types parsing
 #
 
-def parse_alfa(bytes_array: bytes):
+def parse_bmv_alfa(bytes_array: bytes):
     """Parses an array of bytes as a string as specified by BMV"""
     # All ALPHA fields are ISO 8859-1, left aligned and filled on the right with spaces.
     return bytes_array.decode("iso-8859-1").rstrip()
@@ -131,71 +138,97 @@ def parse_bmv_precio8(bytes_array: bytes) -> float:
 
 
 #
+# Utility assert functions
+#
+
+
+def assert_nonzero_float(source, field):
+    assert float(source[field]) >= 0.0, f"{field} {source['field']} must be >= 0.0"
+
+
+def assert_positive_integer(source, field):
+    assert int(source[field]) > 0, f"{field} {source['field']} must be a positive integer."
+
+
+def assert_in_catalog(source, field, catalog):
+    assert source[field] in catalog, f"{field} {source['field']} unknown in the catalog."
+
+
+def assert_is_valid_price(source, field):
+    assert float(source[field]) >= 0.0, f"{field} must be >= 0.0 to be a valid price."
+
+
+def check_message_type(bytes_array, expected_type, expected_length):
+    '''message type checks JUST THE FIRST byte to figure out the type of the message'''
+    assert len(bytes_array) == expected_length, f"{expected_type} has length ${len(bytes_array)} but must have {expected_length} "
+    tipo_mensaje = parse_bmv_alfa(bytes_array[:1])
+    assert tipo_mensaje == expected_type, f"This parsing only works for mensaje {expected_type}"
+    print(f"Message type is {tipo_mensaje}")
+    return tipo_mensaje
+
+
+def check_catalog_type(bytes_array, expected_type, expected_length):
+    '''catalog type checks the first two bytes to figure out the type of the message'''
+    assert len(bytes_array) == expected_length, f"{expected_type} has length ${len(bytes_array)} but must have {expected_length} "
+    tipo_mensaje = parse_bmv_alfa(bytes_array[:2])
+    assert tipo_mensaje == expected_type, f"This parsing only works for catalogo {expected_type}"
+    return tipo_mensaje
+
+#
 # Producto 18 Messages
 #
 
 def parse_bmv_mensaje_M(bytes_array: bytes) -> dict:
     """Parses an array of 21 bytes as a 'mensaje M' as specified by BMV"""
-    msg_M: dict
-    assert len(bytes_array) == 21, f"Mensaje M debe tener 9 bytes y tiene ${len(bytes_array)}"
-    tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'M', "This parsing only works for 'mensaje M'"
-    msg_M = {"key": 0, "tipoMensaje": tipo_mensaje,
+    tipo_mensaje = check_message_type(bytes_array, 'M', 9)
+    msg_M = {"key": None, "tipoMensaje": tipo_mensaje,
              "precioPromedioPonderado": parse_bmv_precio8(bytes_array[9:17]),
              "volatilidad": parse_bmv_precio8(bytes_array[9:17])
              }
-    assert int(msg_M['numeroInstrumento']) > 0, f"Numero instrumento {msg_M['numeroInstrumento']} debe ser mayor a cero"
-    assert int(msg_M['folioHecho']) > 0.0, "El folio del hecho debe ser mayor a cero"
-    assert float(msg_M['precioPromedioPonderado']) > 0.0, "El Precio Promedio Ponderado debe ser mayor a cero"
-    assert float(msg_M['volatilidad']) > 0.0, "La Volatilidad debe ser mayor a cero"
+    assert_positive_integer(msg_M, 'numeroInstrumento')
+    assert_positive_integer(msg_M, 'folioHecho')
+    assert_is_valid_price(msg_M, 'precioPromedioPonderado')
+    assert_nonzero_float(msg_M, 'volatilidad')
     # Done with checks
     return msg_M
 
 
 def parse_bmv_mensaje_H(bytes_array: bytes) -> dict:
     """Parses an array of 9 bytes as a 'Mensaje H' as specified by BMV"""
-    msg_H: dict
-    assert len(bytes_array) == 9, f"Mensaje H debe tener 9 bytes y tiene ${len(bytes_array)}"
-    tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'H', "This parsing only works for mensaje H"
-    msg_H = {"key": 0, "tipoMensaje": tipo_mensaje,
+    tipo_mensaje = check_message_type(bytes_array, 'H', 9)
+    msg_H = {"key": None, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "folioHecho": parse_bmv_int32(bytes_array[5:9]),
              }
-    assert int(msg_H['numeroInstrumento']) > 0, f"Numero instrumento {msg_H['numeroInstrumento']} debe ser mayor a cero"
-    assert int(msg_H['folioHecho']) > 0, "El folio del hecho debe ser mayor a cero"
-    # Done with checks
+    assert_positive_integer(msg_H, 'numeroInstrumento')
+    assert_positive_integer(msg_H, 'folioHecho')
     return msg_H
+
 
 
 def parse_bmv_mensaje_O(bytes_array: bytes) -> dict:
     """Parses an array of 19 bytes as a 'Mensaje O' as specified by BMV"""
-    msg_O: dict
-    assert len(bytes_array) == 19, f"Mensaje O debe tener 19 bytes y tiene ${len(bytes_array)}"
-    tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'O', "This parsing only works for mensaje O"
-    msg_O = {"key": 0, "tipoMensaje": tipo_mensaje,
+    tipo_mensaje = check_message_type(bytes_array, 'O', 19)
+    msg_O = {"key": None, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "volumen": parse_bmv_int32(bytes_array[5:9]),
              "precio": parse_bmv_precio8(bytes_array[9:17]),
-             "sentido": parse_alfa(bytes_array[17:18]),
-             "tipo": parse_alfa(bytes_array[18:19])
+             "sentido": parse_bmv_alfa(bytes_array[17:18]),
+             "tipo": parse_bmv_alfa(bytes_array[18:19])
              }
-    assert int(msg_O['numeroInstrumento']) > 0, f"Numero instrumento {msg_O['numeroInstrumento']} debe ser mayor a cero"
-    assert int(msg_O['volumen']) >= 0, "El Volumen acumulado debe ser cero o mayor"
-    assert float(msg_O['precio']) >= 0.0, f"El precio  {msg_O['precio']} debe ser mayor o igual a cero"
-    assert msg_O['sentido'] in ('C', 'V'), f"El sentido '{msg_O['sentido']}' no es conocido"
-    assert msg_O['tipo'] in ('C', 'H', 'P', 'N'), f"El tipo '{msg_O['tipo']}' no es conocido"  
-    # Done with checks
+    assert_positive_integer(msg_O, 'numeroInstrumento')
+    assert_positive_integer(msg_O, 'volumen')
+    assert_is_valid_price(msg_O, 'precio')
+    BMV_SENTIDO_OPERACION = ('C', 'V')
+    BMV_TIPO = ('C', 'H', 'P', 'N')
+    assert_in_catalog(msg_O, 'sentido', BMV_SENTIDO_OPERACION)
+    assert_in_catalog(msg_O, 'tipo', BMV_TIPO)
     return msg_O
 
 def parse_bmv_mensaje_E(bytes_array: bytes) -> dict:
     """Parses an array of 65 bytes as a 'Mensaje E' as specified by BMV"""
-    msg_E: dict
-    assert len(bytes_array) == 65, f"Mensaje E debe tener 65 bytes y tiene ${len(bytes_array)}"
-    tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'E', "This parsing only works for mensaje E"
-    msg_E = {"key": 0, "tipoMensaje": tipo_mensaje,
+    tipo_mensaje = check_message_type(bytes_array, 'E', 65)
+    msg_E = {"key": None, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "numeroOperaciones": parse_bmv_int32(bytes_array[5:9]),
              "volumen": parse_bmv_int64(bytes_array[9:17]),
@@ -206,53 +239,48 @@ def parse_bmv_mensaje_E(bytes_array: bytes) -> dict:
              "promedio": parse_bmv_precio8(bytes_array[49:57]),
              "last": parse_bmv_precio8(bytes_array[57:65])
              }
-    assert int(msg_E['numeroInstrumento']) > 0, f"Numero instrumento {msg_E['numeroInstrumento']} debe ser mayor a cero"
-    assert int(msg_E['numeroOperaciones']) >= 0, "El numero de operaciones es cero o mayor"
-    assert int(msg_E['volumen']) >= 0, "El Volumen acumulado debe ser cero o mayor"
-    assert float(msg_E['importe']) >= 0.0, "El importe acumulado debe ser cero o mayor"
-    assert float(msg_E['apertura']) >= 0.0, f"El precio de apertura {msg_E['apertura']} debe ser mayor o igual a cero"
-    assert float(msg_E['maximo']) >= 0.0, f"El precio maximo {msg_E['maximo']} debe ser mayor o igual a cero"
-    assert float(msg_E['minimo']) >= 0.0, f"El precio minimo {msg_E['minimo']} debe ser mayor o igual a cero"
-    assert float(msg_E['promedio']) >= 0.0, f"El precio promedio {msg_E['promedio']} debe ser mayor o igual a cero"
-    assert float(msg_E['last']) > 0.0, f"El ultimo precio {msg_E['last']} debe ser mayor a cero"
-    # Done with checks
+    assert_positive_integer(msg_E, 'numeroInstrumento')
+    assert_positive_integer(msg_E, 'numeroOperaciones')
+    assert_positive_integer(msg_E, 'volumen')
+    assert_is_valid_price(msg_E, 'importe')
+    assert_is_valid_price(msg_E, 'apertura')
+    assert_is_valid_price(msg_E, 'maximo')
+    assert_is_valid_price(msg_E, 'minimo')
+    assert_is_valid_price(msg_E, 'promedio')
+    assert_is_valid_price(msg_E, 'last')
     return msg_E
 
 
 
 def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     """Parses an array of 52 bytes as a 'Mensaje P' as specified by BMV"""
-    msg_P: dict
-    assert len(bytes_array) == 52, f"Mensaje P debe tener 52 bytes y tiene ${len(bytes_array)}"
-    tipo_mensaje = parse_alfa(bytes_array[:1])
-    assert tipo_mensaje == 'P', "This parsing only works for mensaje P"
-    msg_P = {"key": 0, "tipoMensaje": tipo_mensaje,
+    tipo_mensaje = check_message_type(bytes_array, 'P', 52)
+    msg_P = {"key": None, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[1:5]),
              "horaHecho": parse_bmv_timestamp2(bytes_array[5:13]).isoformat(),
              "volumen": parse_bmv_int32(bytes_array[13:17]),
              "precio": parse_bmv_precio8(bytes_array[17:25]),
-             "tipoConcertacion": parse_alfa(bytes_array[25:26]),
+             "tipoConcertacion": parse_bmv_alfa(bytes_array[25:26]),
              "folioHecho": parse_bmv_int32(bytes_array[26:30]),
-             "fijaPrecio": parse_alfa(bytes_array[30:31]) == '1',
-             "tipoOperacion": parse_alfa(bytes_array[31:32]),
+             "fijaPrecio": parse_bmv_alfa(bytes_array[30:31]) == '1',
+             "tipoOperacion": parse_bmv_alfa(bytes_array[31:32]),
              "importe": parse_bmv_precio8(bytes_array[32:40]),
-             "compra": parse_alfa(bytes_array[40:45]),
-             "vende": parse_alfa(bytes_array[45:50]),
-             "liquidacion": parse_alfa(bytes_array[50:51]),
-             "indicadorSubasta": parse_alfa(bytes_array[51:52])
+             "compra": parse_bmv_alfa(bytes_array[40:45]),
+             "vende": parse_bmv_alfa(bytes_array[45:50]),
+             "liquidacion": parse_bmv_alfa(bytes_array[50:51]),
+             "indicadorSubasta": parse_bmv_alfa(bytes_array[51:52])
              }
-    assert int(msg_P['numeroInstrumento']) > 0, f"Numero instrumento {msg_P['numeroInstrumento']} debe ser mayor a cero"
-    assert int(msg_P['volumen']) > 0, "El Volumen de un hecho siempre debe ser mayor a cero"
-    assert float(msg_P['precio']) > 0.0, "El precio de un hecho siempre debe ser mayor a cero"
-    assert msg_P['tipoConcertacion'] in BMV_TIPOS_CONCERTACION
-    assert int(msg_P['folioHecho']) > 0, "El folio del hecho debe ser mayor a cero"
-    assert msg_P['tipoOperacion'] in BMV_TIPOS_OPERACION, \
-        f"El tipo de operacion '{msg_P['tipoOperacion']}' no es conocido"  # X es nuevo
-    assert float(msg_P['importe']) > 0.0, "El importe de un hecho siempre debe ser mayor a cero"
-    assert msg_P['liquidacion'] in BMV_TIPOS_LIQUIDACION, \
-        f"El tipo de liquidacion {msg_P['liquidacion']} no es conocido"
-    assert msg_P['indicadorSubasta'] in BMV_TIPOS_SUBASTA, \
-        f"'{msg_P['indicadorSubasta']}' no es un tipo de subasta conocido"  # '' es nuevo.
+    assert_positive_integer(msg_P, 'numeroInstrumento')
+    assert_positive_integer(msg_P, 'volumen')
+    assert_is_valid_price(msg_P, 'precio')
+    assert_in_catalog(msg_P, 'tipoConcertacion', BMV_TIPOS_CONCERTACION)
+    assert_positive_integer(msg_P, 'folioHecho')
+    assert_in_catalog(msg_P, 'tipoOperacion', BMV_TIPOS_OPERACION)
+    # X es nuevo
+    assert_nonzero_float(msg_P, 'importe')
+    assert_in_catalog(msg_P, 'liquidacion', BMV_TIPOS_LIQUIDACION)
+    assert_in_catalog(msg_P, 'indicadorSubasta', BMV_TIPOS_SUBASTA) 
+    # '' es nuevo.
     return msg_P
 
 
@@ -261,52 +289,248 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
 #
 
 
-def parse_bmv_mensaje_ca(bytes_array: bytes) -> dict:
+def parse_bmv_catalogo_ca(bytes_array: bytes) -> dict:
     """Parses an array of 113 bytes as a 'catalogo ca' as specified by BMV"""
-    cat_ca: dict
-    assert len(bytes_array) == 113, f"Catalogo ca debe tener 113 bytes y tiene ${len(bytes_array)}"
-    tipo_mensaje = parse_alfa(bytes_array[0:2])  # This is two bytes for Producto 40.
-    assert tipo_mensaje == 'ca', "This parsing only works for mensaje ca"
-    cat_ca = {"key": 0, "tipoMensaje": tipo_mensaje,
+    tipo_mensaje = check_catalog_type(bytes_array, 'ca', 113)
+    cat_ca = {"key": None, "tipoMensaje": tipo_mensaje,
              "numeroInstrumento": parse_bmv_int32(bytes_array[2:6]),
-             "tipoValor": parse_alfa(bytes_array[6:8]),
-             "emisora": parse_alfa(bytes_array[8:15]),
-             "serie": parse_alfa(bytes_array[15:21]),
+             "tipoValor": parse_bmv_alfa(bytes_array[6:8]),
+             "emisora": parse_bmv_alfa(bytes_array[8:15]),
+             "serie": parse_bmv_alfa(bytes_array[15:21]),
              "ultimoPrecio": parse_bmv_precio8(bytes_array[21:29]),
              "PPP": parse_bmv_precio8(bytes_array[29:37]),
              "precioCierre": parse_bmv_precio8(bytes_array[37:45]),
              "fechaReferencia": parse_bmv_timestamp1(bytes_array[45:53]).isoformat(),
-             "referencia": parse_alfa(bytes_array[53:55]),
+             "referencia": parse_bmv_alfa(bytes_array[53:55]),
              "cuponVigente": parse_bmv_int16(bytes_array[55:57]),
-             "bursatilidad": parse_alfa(bytes_array[57:59]),
+             "bursatilidad": parse_bmv_alfa(bytes_array[57:59]),
              "bursatilidadNumerica": parse_bmv_precio4(bytes_array[59:63]),
-             "ISIN": parse_alfa(bytes_array[63:75]),
-             "mercado": parse_alfa(bytes_array[75:76]),
+             "ISIN": parse_bmv_alfa(bytes_array[63:75]),
+             "mercado": parse_bmv_alfa(bytes_array[75:76]),
              "valoresInscritos": parse_bmv_int64(bytes_array[76:84]),
              "importeBloques": parse_bmv_precio8(bytes_array[84:92]),
-             "bolsaOrigen": parse_alfa(bytes_array[92:93]),
+             "bolsaOrigen": parse_bmv_alfa(bytes_array[92:93]),
              # There's a filler of 20 bytes, from 93 to 113 that we ignore.
              }
-    assert int(cat_ca['numeroInstrumento']) > 0, f"Numero instrumento {cat_ca['numeroInstrumento']} debe ser mayor a cero."
-    # assert cat_ca['tipoValor'] in BMV_TIPOS_VALOR, f"El tipo de valor {cat_ca['tipoValor']} no esta en el catálogo."
-    if cat_ca['tipoValor'] not in BMV_TIPOS_VALOR:
-        print(f"Tipo de valor {cat_ca['tipoValor']}")
-    assert float(cat_ca['ultimoPrecio']) >= 0.0, "El ultimo precio debe >= 0.0"
-    assert float(cat_ca['PPP']) >= 0.0, "El PPP debe ser >= 0.0"
-    assert float(cat_ca['precioCierre']) >= 0.0, "El precio de cierre debe ser >= 0.0"
+    assert_positive_integer(cat_ca, 'numeroInstrumento')
+    assert_in_catalog(cat_ca,'tipoValor', BMV_TIPOS_VALOR)
+    assert_is_valid_price(cat_ca, 'ultimoPrecio')
+    assert_is_valid_price(cat_ca, 'PPP')
+    assert_is_valid_price(cat_ca, 'precioCierre')
     # assert cat_ca['fechaReferencia'] is True, "ToDo"
-    assert cat_ca['referencia'] in BMV_CATALOGO_REFERENCIA, f"La Referencia {cat_ca['referencia']} no esta en el catálogo."
-    assert float(cat_ca['cuponVigente']) >= 0, "El cupon vigente debe ser mayor o igual a cero."
-    assert cat_ca['bursatilidad'] in BMV_BURSATILIDAD, f"La bursatilidad '{cat_ca['bursatilidad']}' no es conocida."  
-    assert float(cat_ca['bursatilidadNumerica']) >= 0.0, "La Bursatilidad Numérica debe ser >= 0.0"
-    assert cat_ca['mercado'] in BMV_MERCADOS, f"El mercado {cat_ca['mercado']} no es conocido."
-    assert float(cat_ca['valoresInscritos']) > 0, "Los valores inscritos deben ser mayores a cero." 
-    assert float(cat_ca['importeBloques']) >= 0.0, "El importe de bloques debe ser >= 0.0"
+    assert_in_catalog(cat_ca,'referencia', BMV_CATALOGO_REFERENCIA)
+    assert_positive_integer(cat_ca, 'cuponVigente')
+    assert_in_catalog(cat_ca,'bursatilidad', BMV_BURSATILIDAD)
+    assert_nonzero_float(cat_ca, 'bursatilidadNumerica')
+    assert_in_catalog(cat_ca,'mercado', BMV_MERCADOS)
+    assert_positive_integer(cat_ca, 'valoresInscritos')
+    assert_nonzero_float(cat_ca, 'importeBloques')
     assert cat_ca['bolsaOrigen'] != None, "La Bolsa origen debe estar definida."
-    if cat_ca['bolsaOrigen'] not in BMV_BOLSA_ORIGEN:
-        print(f"Bolsa origen {cat_ca['bolsaOrigen']}")
+    assert_in_catalog(cat_ca,'bolsaOrigen', BMV_BOLSA_ORIGEN)
     return cat_ca
 
+
+def parse_bmv_catalogo_ce(bytes_array:bytes) -> dict:
+    """Parses an array of 103 bytes as a 'catalogo ce' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'ce', 103)
+    cat_ce = {"key": None, "tipoMensaje": tipo_mensaje,
+              'numeroTrac': parse_bmv_int32(bytes_array[2:6]),
+              'nombreTrac': parse_bmv_alfa(bytes_array[6:14]),
+              'emisoraSubyascente': parse_bmv_alfa(bytes_array[14:21]),
+              'serieSubyacente': parse_bmv_alfa(bytes_array[21:27]),
+              'titulos': parse_bmv_int64(bytes_array[27:35]),
+              'titulosExcluidos': parse_bmv_int64(bytes_array[35:43]),
+              'precio': parse_bmv_precio8(bytes_array[43:51]),
+              'componenteEfectivo': parse_bmv_precio8(bytes_array[51:59]),
+              'valorExcluido': parse_bmv_precio8(bytes_array[59:67]),
+              'numeroCertificados': parse_bmv_int64(bytes_array[67:75]),
+              'precioTeorico': parse_bmv_precio8(bytes_array[75:83]),
+    }
+    assert_positive_integer(cat_ce, 'numeroTrac')
+    assert_is_valid_price(cat_ce, 'titulos')
+    assert_is_valid_price(cat_ce, 'titulosExcluidos')
+    assert_is_valid_price(cat_ce, 'precio')
+    assert_is_valid_price(cat_ce, 'componenteEfectivo')
+    assert_is_valid_price(cat_ce, 'valorExcluido')
+    assert_positive_integer(cat_ce, 'numeroCertificados')
+    assert_is_valid_price(cat_ce, 'precioTeorico')
+    return cat_ce
+              
+              
+              
+
+def parse_bmv_catalogo_cc(bytes_array:bytes) -> dict:
+    """Parses an array of 89 bytes as a 'catalogo cc' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'cc', 89)
+    cat_cc = {"key": None, "tipoMensaje": tipo_mensaje,
+            "numeroInstrumento": parse_bmv_int32(bytes_array[2:6]),
+            "tipoValor": parse_bmv_alfa(bytes_array[6:8]),
+            "emisora": parse_bmv_alfa(bytes_array[8:15]),
+            "serie": parse_bmv_alfa(bytes_array[15:21]),
+            "tipoWarrant": parse_bmv_alfa(bytes_array[21:22]),
+            "fechaVencimiento": parse_bmv_timestamp2(bytes_array[22:30]).isoformat(),
+            "precioEjercicio": parse_bmv_precio8(bytes_array[30:38]),
+            "precioReferencia": parse_bmv_precio8(bytes_array[38:46]),
+            "fechaReferencia": parse_bmv_timestamp2(bytes_array[46:54]).isoformat(),
+            "referencia": parse_bmv_alfa(bytes_array[54:56]),
+            "ISIN": parse_bmv_alfa(bytes_array[56:68]),
+            "bolsaOrigen": parse_bmv_alfa(bytes_array[68:69]),
+            # There's a filler of 20 bytes, from 69 to 89 that we ignore.
+    }
+    assert_positive_integer(cat_cc, 'numeroInstrumento')
+    assert_in_catalog(cat_cc,'tipoValor', BMV_TIPOS_VALOR)
+    assert_in_catalog(cat_cc,'tipoWarrant', BMV_TIPOS_WARRANT)
+    assert_is_valid_price(cat_cc, 'precioEjercicio')
+    assert_is_valid_price(cat_cc, 'precioReferencia')
+    assert_in_catalog(cat_cc,'bolsaOrigen', BMV_TIPOS_BOLSA_ORIGEN)
+    return cat_cc
+
+
+def parse_bmv_catalogo_cf(bytes_array:bytes) -> dict:
+    """Parses an array of 100 bytes as a 'catalogo cf' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'cf', 100)
+    cat_cf = {"key": None, "tipoMensaje": tipo_mensaje,
+              'numeroInstrumento': parse_bmv_int32(bytes_array[2:6]),
+              'tipoValor': parse_bmv_alfa(bytes_array[6:8]),
+              'emisora': parse_bmv_alfa(bytes_array[8:15]),
+              'serie': parse_bmv_alfa(bytes_array[15:21]),
+              'sector': parse_bmv_alfa(bytes_array[21:22]),
+              'subsector': parse_bmv_alfa(bytes_array[22:23]),
+              'ramo': parse_bmv_alfa(bytes_array[23:24]),
+              'subramo': parse_bmv_alfa(bytes_array[24:25]),
+              'operadora': parse_bmv_alfa(bytes_array[25:35]),
+              'precioReferencia': parse_bmv_precio8(bytes_array[35:43]),
+              'fechaReferencia': parse_bmv_timestamp1(bytes_array[43:51]).isoformat(),
+              'referencia': parse_bmv_alfa(bytes_array[51:53]),
+              'ISIN': parse_bmv_alfa(bytes_array[53:65]),
+              'calificacion': parse_bmv_alfa(bytes_array[65:80]),
+              # FIlling of 20 from 80 to 100
+    }
+    assert_positive_integer(cat_cf, 'numeroInstrumento')
+    assert_in_catalog(cat_cf,'tipoValor', BMV_TIPOS_VALOR)
+    assert_is_valid_price(cat_cf, 'precioReferencia')
+    return cat_cf
+    
+    
+
+def parse_bmv_catalogo_cb(bytes_array:bytes) -> dict:
+    """Parses an array of 126 bytes as a 'catalogo cb' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'cb', 126)
+    cat_cb = {"key": None, "tipoMensaje": tipo_mensaje,
+              'numeroInstrumento': parse_bmv_int32(bytes_array[2:6]),
+              'tipoValor': parse_bmv_alfa(bytes_array[6:8]),
+              'emisora': parse_bmv_alfa(bytes_array[8:15]),
+              'emision': parse_bmv_alfa(bytes_array[15:21]),
+              'fechaEmision': parse_bmv_timestamp1(bytes_array[21:29]).isoformat(),
+              'fechaVencimiento': parse_bmv_timestamp1(bytes_array[29:37]).isoformat(),
+              'precioOtasaReferencia': parse_bmv_precio8(bytes_array[37:45]),
+              'fechaReferencia': parse_bmv_timestamp1(bytes_array[45:53]).isoformat(),
+              'referencia': parse_bmv_alfa(bytes_array[53:55]),
+              'diasPlazo': parse_bmv_int16(bytes_array[55:57]),
+              'cuponOperiodo': parse_bmv_int16(bytes_array[57:59]),
+              'ISIN': parse_bmv_alfa(bytes_array[59:71]),
+              'mercado': parse_bmv_alfa(bytes_array[71:72]),
+              'valorNominalActual': parse_bmv_precio8(bytes_array[72:80]),
+              'valorNominalOriginal': parse_bmv_precio8(bytes_array[80:88]),
+              'accionesEnCirculacion': parse_bmv_int64(bytes_array[88:96]),
+              'montoColocado': parse_bmv_int64(bytes_array[96:104]),
+              'operaTasaPrecio': parse_bmv_alfa(bytes_array[104:105]),
+              'bolsaOrigen': parse_bmv_alfa(bytes_array[105:106]),
+              # Filler of 20 from 106 to 126
+    }
+    assert_positive_integer(cat_cb, 'numeroInstrumento')
+    assert_in_catalog(cat_cb,'tipoValor', BMV_TIPOS_VALOR)
+    assert_is_valid_price(cat_cb, 'precioOtasaReferencia')
+    assert_is_valid_price(cat_cb, 'valorNominalActual')
+    assert_is_valid_price(cat_cb, 'valorNominalOriginal')
+    assert_positive_integer(cat_cb, 'accionesEnCirculacion')
+    assert_positive_integer(cat_cb, 'montoColocado')
+    assert_in_catalog(cat_cb,'operaTasaPrecio', BMV_TIPOS_OPERA_TASA_PRECIO)
+    assert_in_catalog(cat_cb,'bolsaOrigen', BMV_TIPOS_BOLSA_ORIGEN)
+    return cat_cb
+           
+    
+def parse_bmv_catalogo_cy(bytes_array:bytes) -> dict:
+    """Parses an array of 65 bytes as a 'catalogo cy' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'cy', 65)
+    cat_cy = {"key": None, "tipoMensaje": tipo_mensaje,
+              'numeroInstrumento': parse_bmv_int32(bytes_array[2:6]),
+              'emisora': parse_bmv_alfa(bytes_array[6:13]),
+              'serie': parse_bmv_alfa(bytes_array[13:19]),
+              'tipoValor': parse_bmv_alfa(bytes_array[19:21]),
+              'emisoraSubyacente': parse_bmv_alfa(bytes_array[21:28]),
+              'serieSubyacente': parse_bmv_alfa(bytes_array[28:34]),
+              'tipoValorSubyacente': parse_bmv_alfa(bytes_array[34:36]),
+              'numeroValoresInscritos': parse_bmv_int64(bytes_array[36:44]),
+              'bolsaOrigen': parse_bmv_alfa(bytes_array[44:45]),
+              # Filler of 20 from 45 to 65
+    }
+    assert_positive_integer(cat_cy, 'numeroInstrumento')
+    assert_in_catalog(cat_cy,'tipoValor', BMV_TIPOS_VALOR)
+    assert_in_catalog(cat_cy,'tipoValorSubyacente', BMV_TIPOS_VALOR)
+    assert_positive_integer(cat_cy, 'numeroValoresInscritos')
+    assert_in_catalog(cat_cy,'bolsaOrigen', BMV_TIPOS_BOLSA_ORIGEN)
+    return cat_cy
+           
+    
+def parse_bmv_catalogo_cd(bytes_array:bytes) -> dict:
+    """Parses an array of 115 bytes as a 'catalogo cd' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'cd', 115)
+    cat_cd = {"key": None, "tipoMensaje": tipo_mensaje,
+              'numeroInstrumento': parse_bmv_int32(bytes_array[2:6]),
+              'tipoValor': parse_bmv_alfa(bytes_array[6:8]),
+              'clase': parse_bmv_alfa(bytes_array[8:15]),
+              'vencimiento': parse_bmv_alfa(bytes_array[15:21]),
+              'tipoOpcion': parse_bmv_alfa(bytes_array[21:22]),
+              'precioEjercicio': parse_bmv_precio8(bytes_array[22:30]),
+              'puja': parse_bmv_precio8(bytes_array[30:38]),
+              'precioLiquidacionDiaAnterior': parse_bmv_precio8(bytes_array[38:46]),
+              'ultimaFechaOperacion': parse_bmv_timestamp1(bytes_array[46:54]).isoformat(),
+              'fechaVencimiento': parse_bmv_timestamp1(bytes_array[54:62]).isoformat(),
+              'contratosAbiertos': parse_bmv_int32(bytes_array[62:66]),
+              'tamanoContrato': parse_bmv_int32(bytes_array[66:70]),
+              'codigoProducto': parse_bmv_alfa(bytes_array[70:82]), 
+              'vencimientoDiario': parse_bmv_alfa(bytes_array[82:83]),
+              'clavePrecioEjercicio': parse_bmv_alfa(bytes_array[83:89]),
+              'codigoCFI': parse_bmv_alfa(bytes_array[89:95]),
+              # Filler from 95 to 115
+    }
+    assert_positive_integer(cat_cd, 'numeroInstrumento')
+    assert_in_catalog(cat_cd,'tipoValor', BMV_TIPOS_VALOR)
+    assert_in_catalog(cat_cd,'tipoOpcion', BMV_TIPOS_OPCION)
+    assert_is_valid_price(cat_cd, 'precioEjercicio')
+    assert_is_valid_price(cat_cd, 'puja')
+    assert_is_valid_price(cat_cd, 'precioLiquidacionDiaAnterior')
+    assert_positive_integer(cat_cd, 'contratosAbiertos')
+    assert_positive_integer(cat_cd, 'tamanoContrato')
+    assert_in_catalog(cat_cd,'vencimientoDiario', BMV_TIPOS_VENCIMIENTO_DIARIO)
+    return cat_cd
+
+
+
+def parse_bmv_catalogo_cg(bytes_array:bytes) -> dict:
+    """Parses an array of 76 bytes as a 'catalogo cg' as specified by BMV"""
+    tipo_mensaje = check_catalog_type(bytes_array, 'cg', 76)
+    cat_cg = {"key": None, "tipoMensaje": tipo_mensaje,
+              'numeroInstrumento': parse_bmv_int32(bytes_array[2:6]),
+              'tipoValor': parse_bmv_alfa(bytes_array[6:8]),
+              'clase': parse_bmv_alfa(bytes_array[8:15]),
+              'vencimiento': parse_bmv_alfa(bytes_array[15:21]),
+              'tipoEstrategia': parse_bmv_alfa(bytes_array[21:22]),
+              'puja': parse_bmv_precio8(bytes_array[22:30]),
+              'ultimaFechaOperacion': parse_bmv_timestamp1(bytes_array[30:38]).isoformat(),
+              'fechaVencimiento': parse_bmv_timestamp1(bytes_array[38:46]).isoformat(),
+              'identificadorPataCorta': parse_bmv_int32(bytes_array[46:50]),
+              'identificadorPataLarga': parse_bmv_int32(bytes_array[50:54]),
+              'periodicidad': parse_bmv_int8(bytes_array[54:55]),
+              'numeroVencimientos': parse_bmv_int8(bytes_array[55:56]),
+              # Filler of 20 from 56 to 76
+    }
+    assert_positive_integer(cat_cg, 'numeroInstrumento')
+    assert_in_catalog(cat_cg,'tipoValor', BMV_TIPOS_VALOR)
+    assert_in_catalog(cat_cg,'tipoEstrategia', BMV_TIPOS_ESTRATEGIA)   
+    assert_is_valid_price(cat_cg, 'puja')
+    return cat_cg
 
 
 def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
@@ -318,9 +542,9 @@ def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
     tipo_mensaje: str
     # Select how big is the tipo_mensaje field based on the grupo_market_data
     if grupo_market_data == 18:
-        tipo_mensaje = parse_alfa(to_parse[0:1])
+        tipo_mensaje = parse_bmv_alfa(to_parse[0:1])
     elif grupo_market_data == 40:
-        tipo_mensaje = parse_alfa(to_parse[0:2])
+        tipo_mensaje = parse_bmv_alfa(to_parse[0:2])
     # Based on the tipo_mensaje, parse the message
     match tipo_mensaje:
         case 'P':
@@ -334,7 +558,23 @@ def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
         case 'M':
             mensaje = parse_bmv_mensaje_M(to_parse)
         case 'ca':
-            mensaje = parse_bmv_mensaje_ca(to_parse)
+            mensaje = parse_bmv_catalogo_ca(to_parse)
+        case 'cb':
+            mensaje = parse_bmv_catalogo_cb(to_parse)
+        case 'cc':
+            mensaje = parse_bmv_catalogo_cc(to_parse)
+        case 'cd':
+            mensaje = parse_bmv_catalogo_cd(to_parse)
+        case 'ce':
+            mensaje = parse_bmv_catalogo_ce(to_parse)
+        case 'cf':
+            mensaje = parse_bmv_catalogo_cf(to_parse)
+        case 'cg':
+            mensaje = parse_bmv_catalogo_cg(to_parse)
+        case 'cy':
+            mensaje = parse_bmv_catalogo_cy(to_parse)
+        
+            
     return mensaje       
         
 
@@ -393,6 +633,7 @@ def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
             # we try to ignored it.
             print(e)
             print(f"Unexpected error on sequence {last_sequence}, trying to continue...")
+            last_sequence = None
             continue
     print(f"Last found sequence is {last_sequence}")
     return counter_msgs
