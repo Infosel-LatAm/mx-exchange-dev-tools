@@ -14,9 +14,11 @@ HEADER_SIZE = 17
 # http://tecnologia.bmv.com.mx:6503/especificacion/multicast/msg/structure/header.html
 # http://tecnologia.bmv.com.mx:6503/especificacion/index.html
 
+
 #  Notes On Conversions rules
 #
 # * in BMV all integer fields are big-endian, and have a sign.
+
 
 #
 # BMV format definitions based on the conversion rules above.
@@ -545,6 +547,8 @@ def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
         tipo_mensaje = parse_alfa(to_parse[0:1])
     elif grupo_market_data == 40:
         tipo_mensaje = parse_alfa(to_parse[0:2])
+    else:
+        tipo_mensaje = ''
     # Based on the tipo_mensaje, parse the message
     match tipo_mensaje:
         case 'P':
@@ -614,7 +618,7 @@ def parse_bmv_udp_packet(packet_data: bytes) -> dict:
 
 
 def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
-    '''Parses a complete cap file assuming it has only udp packets from BMV 'producto 18' or 'producto 40''''
+    '''Parses a complete cap file assuming it has only udp packets from BMV 'producto 18' or 'producto 40'''
     pcap = dpkt.pcap.Reader(input_file)
     # We will keep basic statistics of how many messages we process per each type.
     counter_msgs = {}
@@ -623,8 +627,8 @@ def parse_bmv_pcap_file(input_file: BufferedReader, output_file) -> dict:
     for timestamp, pkt in pcap:
         try:
             eth:dpkt.ethernet.Ethernet = dpkt.ethernet.Ethernet(pkt)
-            ip:dpkt.ip.IP = eth.data
-            if ip.p == dpkt.ip.IP_PROTO_UDP:  # Make sure is UDP.    
+            ip:dpkt.ip.IP = eth.data  # type: ignore 
+            if ip.p == dpkt.ip.IP_PROTO_UDP:  # We make sure is UDP.  # type: ignore  
                 udp_packet = ip.data
                 last_sequence = process_bmv_udp_packet(output_file, counter_msgs, last_sequence, udp_packet)
         except Exception as e:

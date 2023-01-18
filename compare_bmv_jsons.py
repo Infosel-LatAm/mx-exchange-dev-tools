@@ -8,6 +8,7 @@ from  bmv_utils.compare import *
 import sys
 
 def compare_bmv_producto_jsons(expected_output, actual_output):
+    is_equal = True
     with open(expected_output, 'r') as expected_file:
         with open(actual_output, 'r') as actual_file:
             '''Read each line from expected_output and actual_output, compare them.'''
@@ -22,15 +23,20 @@ def compare_bmv_producto_jsons(expected_output, actual_output):
                     # tipoMensaje is important because is the way we can identify the type of message received from BMV and its fields.
                     assert 'tipoMensaje' in actual_json, f"'tipoMensaje' not in actual_output file: {actual_output}"
                     if expected_json['tipoMensaje'] == 'ca':
-                        compare_bmv_catalogo_ca(expected_json, actual_json)
+                        if not compare_bmv_catalogo_ca(expected_json, actual_json):
+                            is_equal = False
                     elif expected_json['tipoMensaje'] == 'P':
-                        compare_bmv_message_P(expected_json, actual_json)
+                        if not compare_bmv_message_P(expected_json, actual_json):
+                            is_equal = False
                     else:
                         print(f"{expected_json['key']}: Unknown message type: {expected_json['tipoMensaje']}")
                 except AssertionError as e:
                     print(f"Assertion failed: {e}")
+                    is_equal = False
                 except:
                     print(f"{expected_json['key']}: An error ocurred")
+                    is_equal = False
+    return is_equal
 
 
 if __name__ == '__main__':
@@ -40,5 +46,6 @@ if __name__ == '__main__':
         sys.exit(1)
     expected_output = sys.argv[1]
     actual_output = sys.argv[2]
-    compare_bmv_producto_jsons(expected_output, actual_output)
+    is_equal = compare_bmv_producto_jsons(expected_output, actual_output)
+    print(f"{expected_output} is equal to {actual_output}? {is_equal}")
             
