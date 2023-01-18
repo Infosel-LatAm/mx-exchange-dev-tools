@@ -1,1 +1,2 @@
 dpkt~=1.9.8
+dateutil.parser~=2.8.1
