@@ -18,18 +18,7 @@ def compare_bmv_producto_jsons(expected_output, actual_output):
                 expected_json = json.loads(expected_line)
                 try:
                     actual_json = json.loads(actual_line)
-                    # Key is important because is the way to identfy the message received from BMV
-                    assert 'key' in actual_json, f"'key' not in actual_output file: {actual_output}"
-                    # tipoMensaje is important because is the way we can identify the type of message received from BMV and its fields.
-                    assert 'tipoMensaje' in actual_json, f"'tipoMensaje' not in actual_output file: {actual_output}"
-                    if expected_json['tipoMensaje'] == 'ca':
-                        if not compare_bmv_catalogo_ca(expected_json, actual_json):
-                            is_equal = False
-                    elif expected_json['tipoMensaje'] == 'P':
-                        if not compare_bmv_message_P(expected_json, actual_json):
-                            is_equal = False
-                    else:
-                        print(f"{expected_json['key']}: Unknown message type: {expected_json['tipoMensaje']}")
+                    is_equal = compare_bmv_message_json(expected_json, actual_json) and is_equal
                 except AssertionError as e:
                     print(f"Assertion failed: {e}")
                     is_equal = False
