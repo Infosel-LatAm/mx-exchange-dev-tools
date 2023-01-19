@@ -56,10 +56,10 @@ BMV_BURSATILIDAD = ('AL', 'ME', 'BA', 'MI', 'RC', 'NU')
 BMV_MERCADOS = ('L', 'G', 'D', 'F', 'E', 'M', 'X', 'V', 'J', 'B', 'T', 'I', 'W', ' ')
 
 
-
 #
 # BMV Data types parsing
 #
+
 
 def parse_alfa(bytes_array: bytes):
     '''Parses an array of bytes as a string as specified by BMV'''
@@ -176,9 +176,11 @@ def check_catalog_type(bytes_array, expected_type, expected_length):
     assert tipo_mensaje == expected_type, f'This parsing only works for catalogo {expected_type}'
     return tipo_mensaje
 
+
 #
 # Producto 18 Messages
 #
+
 
 def parse_bmv_mensaje_M(bytes_array: bytes) -> dict:
     '''Parses an array of 21 bytes as a 'mensaje M' as specified by BMV'''
@@ -205,7 +207,6 @@ def parse_bmv_mensaje_H(bytes_array: bytes) -> dict:
     assert_positive_integer(msg_H, 'numeroInstrumento')
     assert_positive_integer(msg_H, 'folioHecho')
     return msg_H
-
 
 
 def parse_bmv_mensaje_O(bytes_array: bytes) -> dict:

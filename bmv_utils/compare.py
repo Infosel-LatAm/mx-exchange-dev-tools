@@ -1,6 +1,7 @@
-"""
-Comparisons for all the different
-"""
+'''
+Utilities to compare all kinds of BMV messages and catalogs in json format.
+'''
+
 import sys
 import dateutil.parser
 import json
@@ -55,7 +56,7 @@ def compare_bmv_mensaje_E(expected: dict, actual: dict) -> bool:
     return True
 
 
-def compare_bmv_message_P(expected: dict, actual: dict) -> bool:
+def compare_bmv_mensaje_P(expected: dict, actual: dict) -> bool:
     '''Compare two p messages, one is the expected output, the other is the actual output.'''
     key = actual['key']
     assert_eq_json_field(expected, actual, 'key')
@@ -76,7 +77,6 @@ def compare_bmv_message_P(expected: dict, actual: dict) -> bool:
     assert_eq_json_field(expected, actual, 'indicadorSubasta')
     return True
     
-
 
 def compare_bmv_catalogo_ca(expected: dict, actual: dict) -> bool:
     '''Compare two ca messages, one is the expected output, the other is the actual output.'''
@@ -224,7 +224,6 @@ def compare_bmv_catalogo_cd(expected: dict, actual: dict) -> bool:
     return True
 
 
-
 def compare_bmv_catalogo_cg(expected: dict, actual: dict) -> bool:
     key = actual['key']
     assert_eq_json_field(expected, actual, 'key')
@@ -242,3 +241,46 @@ def compare_bmv_catalogo_cg(expected: dict, actual: dict) -> bool:
     assert_eq_json_field(expected, actual, 'periodicidad')
     assert_eq_json_field(expected, actual, 'numeroVencimientos')
     return True
+
+#
+# Binding together all the pieces above.
+#
+
+def compare_bmv_message_json(expected_json, actual_json) -> bool:
+    is_equal = True
+    # Key is important because is the way to identfy the message received from BMV
+    assert 'key' in actual_json, f"'key' not in {actual_json}"
+    # tipoMensaje is important because is the way we can identify the type of message received from BMV and its fields.
+    assert 'tipoMensaje' in actual_json, f"'tipoMensaje' not in {actual_json}"
+    match  expected_json['tipoMensaje']:
+        case 'M':
+            is_equal = compare_bmv_mensaje_M(expected_json, actual_json) and is_equal
+        case 'H':
+            is_equal = compare_bmv_mensaje_H(expected_json, actual_json) and is_equal
+        case 'O':
+            is_equal = compare_bmv_mensaje_O(expected_json, actual_json) and is_equal
+        case 'E':
+            is_equal = compare_bmv_mensaje_E(expected_json, actual_json) and is_equal
+        case 'P':
+            is_equal = compare_bmv_mensaje_P(expected_json, actual_json) and is_equal
+        case 'ca':
+            is_equal = compare_bmv_catalogo_ca(expected_json, actual_json) and is_equal
+        case 'ce':
+            is_equal = compare_bmv_catalogo_ce(expected_json, actual_json) and is_equal
+        case 'cf':
+            is_equal = compare_bmv_catalogo_cf(expected_json, actual_json) and is_equal
+        case 'cc':
+            is_equal = compare_bmv_catalogo_cc(expected_json, actual_json) and is_equal
+        case 'cb':
+            is_equal = compare_bmv_catalogo_cb(expected_json, actual_json) and is_equal
+        case 'cy':
+            is_equal = compare_bmv_catalogo_cy(expected_json, actual_json) and is_equal
+        case 'cd':
+            is_equal = compare_bmv_catalogo_cd(expected_json, actual_json) and is_equal
+        case 'cg':
+            is_equal = compare_bmv_catalogo_cg(expected_json, actual_json) and is_equal
+        case _:
+            print(f"{expected_json['key']}: Unknown message type: {expected_json['tipoMensaje']}")
+            is_equal = False
+    return is_equal
+ 
