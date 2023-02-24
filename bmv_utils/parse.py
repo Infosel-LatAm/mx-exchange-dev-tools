@@ -40,7 +40,7 @@ BMV_BOLSA_ORIGEN = ('M','I')
 BMV_TIPOS_CONCERTACION = ('C', 'O', 'H', 'D', 'M', 'P', 'X', 'v', 'w', '%', 'x', 'y', 'A', 'B', 'E', 'F', 'J', 'K', 'L', 'N', 'Q')
 BMV_TIPOS_OPERACION = ('E', 'C', 'B', 'D', 'W', 'X')
 BMV_TIPOS_LIQUIDACION = ('M', '2', '4', '7', '9', '1')
-BMV_TIPOS_SUBASTA = ('P', 'S', ' ', 'N', '')
+BMV_INDICADORES_SUBASTA = ('P', 'S', ' ', 'N', '')
 
 BMV_TIPOS_WARRANT = ('C','V')
 BMV_TIPOS_BOLSA_ORIGEN = ('M', 'I')
@@ -282,7 +282,7 @@ def parse_bmv_mensaje_P(bytes_array: bytes) -> dict:
     # X es nuevo
     assert_nonzero_float(msg_P, 'importe')
     assert_in_catalog(msg_P, 'liquidacion', BMV_TIPOS_LIQUIDACION)
-    assert_in_catalog(msg_P, 'indicadorSubasta', BMV_TIPOS_SUBASTA) 
+    assert_in_catalog(msg_P, 'indicadorSubasta', BMV_INDICADORES_SUBASTA) 
     # '' es nuevo.
     return msg_P
 
@@ -551,32 +551,31 @@ def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
     else:
         tipo_mensaje = ''
     # Based on the tipo_mensaje, parse the message
-    match tipo_mensaje:
-        case 'P':
+    if tipo_mensaje == 'P':
             mensaje = parse_bmv_mensaje_P(to_parse)
-        case 'E':
+    elif tipo_mensaje == 'E':
          mensaje = parse_bmv_mensaje_E(to_parse)
-        case 'H':
+    elif tipo_mensaje == 'H':
             mensaje = parse_bmv_mensaje_H(to_parse)
-        case 'O':
+    elif tipo_mensaje == 'O':
             mensaje = parse_bmv_mensaje_O(to_parse)
-        case 'M':
+    elif tipo_mensaje == 'M':
             mensaje = parse_bmv_mensaje_M(to_parse)
-        case 'ca':
+    elif tipo_mensaje == 'ca':
             mensaje = parse_bmv_catalogo_ca(to_parse)
-        case 'cb':
+    elif tipo_mensaje == 'cb':
             mensaje = parse_bmv_catalogo_cb(to_parse)
-        case 'cc':
+    elif tipo_mensaje == 'cc':
             mensaje = parse_bmv_catalogo_cc(to_parse)
-        case 'cd':
+    elif tipo_mensaje == 'cd':
             mensaje = parse_bmv_catalogo_cd(to_parse)
-        case 'ce':
+    elif tipo_mensaje == 'ce':
             mensaje = parse_bmv_catalogo_ce(to_parse)
-        case 'cf':
+    elif tipo_mensaje == 'cf':
             mensaje = parse_bmv_catalogo_cf(to_parse)
-        case 'cg':
+    elif tipo_mensaje == 'cg':
             mensaje = parse_bmv_catalogo_cg(to_parse)
-        case 'cy':
+    elif tipo_mensaje == 'cy':
             mensaje = parse_bmv_catalogo_cy(to_parse)
         
             
