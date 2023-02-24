@@ -536,7 +536,7 @@ def parse_bmv_catalogo_cg(bytes_array:bytes) -> dict:
     return cat_cg
 
 
-def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
+def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict:
     '''Given a tipo_mensaje we assume matches the bytes array, we call the appropiate parsing function
     Returns:
         mensaje: A dictionary with the parsed fields
@@ -577,8 +577,6 @@ def parse_by_message_type(grupo_market_data: int, to_parse: bytes) -> dict|None:
             mensaje = parse_bmv_catalogo_cg(to_parse)
     elif tipo_mensaje == 'cy':
             mensaje = parse_bmv_catalogo_cy(to_parse)
-        
-            
     return mensaje       
         
 
